@@ -16,7 +16,7 @@
         android:layout_alignParentTop="true"
         android:layout_centerInParent="true"
         android:layout_marginTop="50dp"
-        android:src="@drawable/logoPdam" />
+        android:src="@drawable/logopdam" />
 
     <TextView
         android:id="@+id/txt_register"
