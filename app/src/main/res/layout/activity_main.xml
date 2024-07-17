@@ -34,18 +34,18 @@
 
     <Button
         android:id="@+id/btn_register"
-        android:layout_below="@+id/txt_register"
         android:layout_width="300dp"
         android:layout_height="70dp"
+        android:layout_below="@+id/txt_register"
+        android:layout_centerInParent="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="150dp"
         android:layout_weight="1"
         android:backgroundTint="@color/white"
         android:text="Daftar"
-        android:textStyle="bold"
         android:textColor="@color/black"
         android:textSize="20sp"
-        android:layout_centerInParent="true"
-        android:layout_marginTop="150dp"
-        />
+        android:textStyle="bold" />
 
         <TextView
             android:id="@+id/login"
