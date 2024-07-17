@@ -9,11 +9,14 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import java.net.DatagramPacket;
 
 import javax.xml.transform.Result;
 
@@ -34,11 +37,12 @@ public class RegistrasiActivity extends AppCompatActivity {
         registerResult();
 
         btnPickImage.setOnClickListener(view -> pickImage());
+        Intent intent;
         resultLauncher.launch(intent);
     }
 
     private void pickImage(){
-        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES)
+        Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
     }
 
     private void registerResult(){
@@ -46,8 +50,9 @@ public class RegistrasiActivity extends AppCompatActivity {
                 new ActivityResultContract.StartActivityForResult(),
                 new ActivityResultCallback<Result>() {
                     @Override
-                    public void onActivityResult(ActivityResult result){
+                    public void onActivityResult(Result o) {
                         try{
+                            DatagramPacket result;
                             Uri imageUri = result.getData().getData();
                             fotoKTP.setImageURI(imageUri);
                         }catch (Exception e){
@@ -55,7 +60,9 @@ public class RegistrasiActivity extends AppCompatActivity {
                         }
                     }
 
+                    
+
                 }
-        )
+        );
     }
 }
