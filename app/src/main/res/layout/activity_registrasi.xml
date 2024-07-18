@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="10dp"
+    android:padding="8dp"
     android:background="@drawable/bgindex"
     tools:context=".RegistrasiActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -60,194 +65,266 @@
             android:textSize="13sp"
             />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingBottom="50dp"
             android:layout_marginTop="5dp"
             android:elevation="10dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_margin="10dp">
-
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Nama"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:layout_margin="10dp">
 
-                <EditText
-                    android:id="@+id/etNama"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Nama"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="NIK"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/etNama"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
 
-                <EditText
-                    android:id="@+id/etNik"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="NIK"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Foto KTP"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/etNik"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
 
-                <ImageView
-                    android:id="@+id/fotoKTP"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:layout_marginTop="10dp"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintVertical_bias="0.120000005"
-                    tools:srcCompat="@tools:sample/avatars"
-                    />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Foto KTP"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
 
-                <Button
-                    android:id="@+id/btnPickImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="5dp"
-                    android:text="Upload Foto KTP"
-                    app:layout_constraintEnd_toEndOf="@+id/fotoKTP"
-                    app:layout_constraintStart_toStartOf="@+id/fotoKTP"
-                    app:layout_constraintTop_toTopOf="@+id/fotoKTP" />
+                        <ImageView
+                            android:id="@+id/fotoKTP"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:layout_marginTop="10dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintVertical_bias="0.120000005"
+                            tools:srcCompat="@tools:sample/avatars"
+                            />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Pekerjaan"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <Button
+                            android:id="@+id/btnPickImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:text="Upload Foto KTP"
+                            app:layout_constraintEnd_toEndOf="@+id/fotoKTP"
+                            app:layout_constraintStart_toStartOf="@+id/fotoKTP"
+                            app:layout_constraintTop_toTopOf="@+id/fotoKTP" />
 
-                <EditText
-                    android:id="@+id/etPekerjaan"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Pekerjaan"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Alamat"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/etPekerjaan"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
 
-                <EditText
-                    android:id="@+id/etAlamat"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Alamat"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Kelurahan"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/etAlamat"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
 
-                <EditText
-                    android:id="@+id/etKelurahan"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="124dp"
+                        android:layout_marginTop="10dp"
+                        android:alignmentMode="alignMargins"
+                        android:columnCount="2"
+                        android:columnOrderPreserved="false"
+                        android:rowCount="1">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Kecamatan"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_rowWeight="1"
+                            android:layout_columnWeight="1">
 
-                <EditText
-                    android:id="@+id/etKecamatan"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="10dp">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Kode Pos"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="RT"
+                                    android:textColor="@color/black"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold" />
 
-                <EditText
-                    android:id="@+id/et"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                                <EditText
+                                    android:id="@+id/etRT"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="62dp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Jumlah Penghuni"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
 
-                <EditText
-                    android:id="@+id/etJumlahPenghuni"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_rowWeight="1"
+                            android:layout_columnWeight="1">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Latitude"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="10dp">
 
-                <EditText
-                    android:id="@+id/etLatitude"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="RW"
+                                    android:textColor="@color/black"
+                                    android:textSize="20sp"
+                                    android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Longitude"
-                    android:textSize="20sp"
-                    android:textColor="@color/black"
-                    android:textStyle="bold" />
+                                <EditText
+                                    android:id="@+id/etRW"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="62dp" />
 
-                <EditText
-                    android:id="@+id/etLongtitude"
-                    android:layout_width="match_parent"
-                    android:layout_height="62dp" />
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </GridLayout>
 
-                <Button
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:text="Daftar"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:backgroundTint="@color/bluesky"
-                    />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Kelurahan"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
 
-            </LinearLayout>
+                        <EditText
+                            android:id="@+id/etKelurahan"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Kecamatan"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/etKecamatan"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Kode Pos"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/et"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Jumlah Penghuni"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/etJumlahPenghuni"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Latitude"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/etLatitude"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Longitude"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/etLongtitude"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <Button
+                            android:layout_width="match_parent"
+                            android:layout_height="60dp"
+                            android:text="Daftar"
+                            android:textStyle="bold"
+                            android:textSize="16sp"
+                            android:backgroundTint="@color/bluesky"
+                            android:layout_marginTop="10dp" />
+                </LinearLayout>
         </androidx.cardview.widget.CardView>
-    </ScrollView>
+    </LinearLayout>
 
-</LinearLayout>
+</ScrollView>
