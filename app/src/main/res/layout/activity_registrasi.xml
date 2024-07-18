@@ -316,6 +316,14 @@
                             android:layout_height="62dp" />
 
                         <Button
+                            android:id="@+id/btn_temukan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:textAllCaps="false"
+                            android:text="Temukan Lokasi" />
+
+                        <Button
                             android:layout_width="match_parent"
                             android:layout_height="60dp"
                             android:text="Daftar"
