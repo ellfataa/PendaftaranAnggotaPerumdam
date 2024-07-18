@@ -1,21 +1,10 @@
 package com.example.formregistrasi;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContract;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.view.View;
 
-import javax.xml.transform.Result;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class RegistrasiActivity extends AppCompatActivity {
 
@@ -24,5 +13,10 @@ public class RegistrasiActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registrasi);
 
+    }
+
+    public void btnKembali(View view) {
+        Intent intent = new Intent(RegistrasiActivity.this, MainActivity.class);
+        startActivity(intent);
     }
 }

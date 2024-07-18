@@ -19,7 +19,6 @@
         android:layout_height="wrap_content"
         android:text="HHHHHHHHH"
         android:textSize="40dp"
-
         />
 
 </LinearLayout>

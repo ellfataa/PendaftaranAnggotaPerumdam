@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">FormRegistrasi</string>
+    <string name="pendaftaran_anggota_perumda_air_minum_tirta_satria">Pendaftaran Anggota PERUMDA AIR MINUM TIRTA SATRIA</string>
+    <string name="todo">TODO</string>
+    <string name="daftar">Daftar</string>
+    <string name="login_untuk_lihat_status">Login untuk lihat status</string>
+    <string name="login">Login</string>
 </resources>
