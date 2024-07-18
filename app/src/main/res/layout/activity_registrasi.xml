@@ -128,7 +128,7 @@
                             />
 
                         <Button
-                            android:id="@+id/btnPickImage"
+                            android:id="@+id/btnPickImgKTP"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="5dp"
@@ -276,6 +276,38 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:text="Foto Rumah"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <ImageView
+                            android:id="@+id/fotoRumah"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:layout_marginTop="10dp"
+                            app:layout_constraintBottom_toBottomOf="parent"
+                            app:layout_constraintEnd_toEndOf="parent"
+                            app:layout_constraintStart_toStartOf="parent"
+                            app:layout_constraintTop_toTopOf="parent"
+                            app:layout_constraintVertical_bias="0.120000005"
+                            tools:srcCompat="@tools:sample/avatars"
+                            />
+
+                        <Button
+                            android:id="@+id/btnPickImgRumah"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:text="Upload Foto Rumah"
+                            app:layout_constraintEnd_toEndOf="@+id/fotoRumahmah"
+                            app:layout_constraintStart_toStartOf="@+id/fotoRumah"
+                            app:layout_constraintTop_toTopOf="@+id/fotoRumah" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:text="Jumlah Penghuni"
                             android:textSize="20sp"
                             android:textColor="@color/black"
@@ -324,6 +356,7 @@
                             android:text="Temukan Lokasi" />
 
                         <Button
+                            android:id="@+id/btnDaftar"
                             android:layout_width="match_parent"
                             android:layout_height="60dp"
                             android:text="Daftar"
