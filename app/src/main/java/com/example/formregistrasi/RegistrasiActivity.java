@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Base64;
@@ -22,14 +21,10 @@ import androidx.core.app.ActivityCompat;
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -43,18 +38,20 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegistrasiActivity extends AppCompatActivity implements onActivityResult2 {
+public class RegistrasiActivity extends AppCompatActivity {
+
+    private static final int REQUEST_IMAGE_KTP = 1;
+    private static final int REQUEST_IMAGE_RUMAH = 2;
 
     Button btnPickImgKTP, btnPickImgRumah, btnDaftar;
     ImageView imageViewKTP, imageViewRumah;
-    Bitmap bitmap,bitmapRumah;
-    String encodedImage;
+    Bitmap bitmap, bitmapRumah;
+    String encodedImageKTP, encodedImageRumah;
 
     private TextView Latitude, Longitude;
     private Button btnTemukan;
     private FusedLocationProviderClient LocationProviderClient;
 
-//    FOTO KTP DAN RUMAH
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -66,190 +63,124 @@ public class RegistrasiActivity extends AppCompatActivity implements onActivityR
         imageViewKTP = findViewById(R.id.fotoKTP);
         imageViewRumah = findViewById(R.id.fotoRumah);
 
-//        MENGUPLOAD FOTO KTP
-        btnPickImgKTP.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Dexter.withActivity(RegistrasiActivity.this)
-                        .withPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                        .withListener(new PermissionListener() {
-                            @Override
-                            public void onPermissionGranted(PermissionGrantedResponse response) {
-                                Intent intent = new Intent(Intent.ACTION_PICK);
-                                intent.setType("image/*");
-                                startActivityForResult(Intent.createChooser(intent, "Pilih foto"), 1);
+        btnPickImgKTP.setOnClickListener(view -> pickImage(REQUEST_IMAGE_KTP));
+        btnPickImgRumah.setOnClickListener(view -> pickImage(REQUEST_IMAGE_RUMAH));
 
-                            }
+        btnDaftar.setOnClickListener(view -> uploadImages());
 
-                            @Override
-                            public void onPermissionDenied(PermissionDeniedResponse response) {
-
-                            }
-
-                            @Override
-                            public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-                                token.continuePermissionRequest();
-                            }
-                        }).check();
-
-            }
-        });
-
-//        MENGUPLOAD FOTO RUMAH
-        btnPickImgRumah.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Dexter.withActivity(RegistrasiActivity.this)
-                        .withPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                        .withListener(new PermissionListener() {
-                            @Override
-                            public void onPermissionGranted(PermissionGrantedResponse response) {
-                                Intent intent = new Intent(Intent.ACTION_PICK);
-                                intent.setType("image/*");
-                                startActivityForResult(Intent.createChooser(intent, "Pilih foto"), 1);
-
-                            }
-
-                            @Override
-                            public void onPermissionDenied(PermissionDeniedResponse response) {
-
-                            }
-
-                            @Override
-                            public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
-                                token.continuePermissionRequest();
-                            }
-                        }).check();
-
-            }
-        });
-
-//        UNTUK UPLOAD FOTO KE DATABASE
-        btnDaftar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                StringRequest request = new StringRequest(Request.Method.POST, "127.0.0.1"
-                        , new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        Toast.makeText(RegistrasiActivity.this, response, Toast.LENGTH_SHORT).show();
-                    }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(RegistrasiActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                }){
-                    @Nullable
-                    @Override
-                    protected Map<String, String> getParams() throws AuthFailureError {
-                        Map<String, String> params = new HashMap<>();
-                        params.put("image", encodedImage);
-                        return params;
-                    }
-                };
-
-                RequestQueue requestQueue = Volley.newRequestQueue( RegistrasiActivity.this);
-                requestQueue.add(request);
-            }
-        });
-
-//        DECLARE LATITUDE DAN LONGITUDE
         Latitude = findViewById(R.id.etLatitude);
         Longitude = findViewById(R.id.etLongtitude);
         btnTemukan = findViewById(R.id.btn_temukan);
 
         LocationProviderClient = LocationServices.getFusedLocationProviderClient(RegistrasiActivity.this);
-        btnTemukan.setOnClickListener(v -> {
-            getLocation();
-        });
+        btnTemukan.setOnClickListener(v -> getLocation());
     }
 
-//    MENGUBAH FOTO MENJADI STRING
+    private void pickImage(int requestCode) {
+        Dexter.withActivity(this)
+                .withPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+                .withListener(new PermissionListener() {
+                    @Override
+                    public void onPermissionGranted(PermissionGrantedResponse response) {
+                        Intent intent = new Intent(Intent.ACTION_PICK);
+                        intent.setType("image/*");
+                        startActivityForResult(Intent.createChooser(intent, "Pilih foto"), requestCode);
+                    }
+
+                    @Override
+                    public void onPermissionDenied(PermissionDeniedResponse response) {
+                        Toast.makeText(RegistrasiActivity.this, "Izin diperlukan untuk memilih gambar", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(PermissionRequest permission, PermissionToken token) {
+                        token.continuePermissionRequest();
+                    }
+                }).check();
+    }
+
+    private void uploadImages() {
+        StringRequest request = new StringRequest(Request.Method.POST, "http://your-actual-url.com/api-endpoint",
+                response -> Toast.makeText(RegistrasiActivity.this, response, Toast.LENGTH_SHORT).show(),
+                error -> Toast.makeText(RegistrasiActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show()) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("imageKTP", encodedImageKTP);
+                params.put("imageRumah", encodedImageRumah);
+                return params;
+            }
+        };
+
+        RequestQueue requestQueue = Volley.newRequestQueue(RegistrasiActivity.this);
+        requestQueue.add(request);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if(requestCode == 1 && resultCode == RESULT_OK && data !=null) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && data != null) {
             Uri filePath = data.getData();
             try {
                 InputStream inputStream = getContentResolver().openInputStream(filePath);
-                bitmap = BitmapFactory.decodeStream(inputStream);
-                imageViewKTP.setImageBitmap(bitmap);
-                imageStore(bitmap);
+                if (requestCode == REQUEST_IMAGE_KTP) {
+                    bitmap = BitmapFactory.decodeStream(inputStream);
+                    imageViewKTP.setImageBitmap(bitmap);
+                    imageStore(bitmap, true);
+                } else if (requestCode == REQUEST_IMAGE_RUMAH) {
+                    bitmapRumah = BitmapFactory.decodeStream(inputStream);
+                    imageViewRumah.setImageBitmap(bitmapRumah);
+                    imageStore(bitmapRumah, false);
+                }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private void imageStore(Bitmap bitmap) {
+    private void imageStore(Bitmap bitmap, boolean isKTP) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] imageBytes = stream.toByteArray();
-        encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
-    }
-
-    @Override
-    public void onActivityResult2(int requestCode, int resultCode, @Nullable Intent data) {
-        if(requestCode == 1 && resultCode == RESULT_OK && data !=null) {
-            Uri filePath = data.getData();
-            try {
-                InputStream inputStream = getContentResolver().openInputStream(filePath);
-                bitmapRumah = BitmapFactory.decodeStream(inputStream);
-                imageViewRumah.setImageBitmap(bitmapRumah);
-                imageStore2(bitmapRumah);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-        super.onActivityResult2(requestCode, resultCode, data);
-    }
-
-    private void imageStore2(Bitmap bitmapRumah) {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bitmapRumah.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byte[] imageBytes = stream.toByteArray();
-        encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
-    }
-
-
-//    MENDAPATKAN TITIK KOORDINAT LATITUDE DAN LONGITUDE
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 10) {
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                    ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                Toast.makeText(getApplicationContext(), "izin Lokasi anda tidak diaktifkan", Toast.LENGTH_SHORT).show();
-            } else {
-                getLocation();
-            }
+        String encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        if (isKTP) {
+            encodedImageKTP = encodedImage;
+        } else {
+            encodedImageRumah = encodedImage;
         }
     }
 
     private void getLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] {
-                    android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION
-            },10);
+            ActivityCompat.requestPermissions(this, new String[]{
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 10);
         } else {
-            LocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-                @Override
-                public void onSuccess(Location location) {
-                    if (location!=null) {
-                        Latitude.setText(String.valueOf(location.getLatitude()));
-                        Longitude.setText(String.valueOf(location.getLongitude()));
-                    } else {
-                        Toast.makeText(getApplicationContext(), "Lokasi anda tidak aktif!",Toast.LENGTH_SHORT).show();
-                    }
+            LocationProviderClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null) {
+                    Latitude.setText(String.valueOf(location.getLatitude()));
+                    Longitude.setText(String.valueOf(location.getLongitude()));
+                } else {
+                    Toast.makeText(getApplicationContext(), "Lokasi anda tidak aktif!", Toast.LENGTH_SHORT).show();
                 }
-            }).addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception e) {
-                    Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                }
+            }).addOnFailureListener(e -> {
+                Toast.makeText(getApplicationContext(), e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
             });
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 10) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLocation();
+            } else {
+                Toast.makeText(getApplicationContext(), "Izin lokasi diperlukan", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
@@ -258,4 +189,3 @@ public class RegistrasiActivity extends AppCompatActivity implements onActivityR
         startActivity(intent);
     }
 }
-
