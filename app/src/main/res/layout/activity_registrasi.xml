@@ -103,7 +103,8 @@
                         <EditText
                             android:id="@+id/etNik"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:hint="Masukan NIK Anda"/>
 
                         <TextView
                             android:layout_width="match_parent"
