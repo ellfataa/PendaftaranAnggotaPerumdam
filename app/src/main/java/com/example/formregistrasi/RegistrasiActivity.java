@@ -30,7 +30,6 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
@@ -44,17 +43,18 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegistrasiActivity extends AppCompatActivity {
+public class RegistrasiActivity extends AppCompatActivity implements onActivityResult2 {
 
     Button btnPickImgKTP, btnPickImgRumah, btnDaftar;
-    ImageView imageView;
-    Bitmap bitmap;
+    ImageView imageViewKTP, imageViewRumah;
+    Bitmap bitmap,bitmapRumah;
     String encodedImage;
 
     private TextView Latitude, Longitude;
     private Button btnTemukan;
     private FusedLocationProviderClient LocationProviderClient;
 
+//    FOTO KTP DAN RUMAH
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,8 +63,10 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
         btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
         btnDaftar = findViewById(R.id.btnDaftar);
-        imageView = findViewById(R.id.fotoKTP);
+        imageViewKTP = findViewById(R.id.fotoKTP);
+        imageViewRumah = findViewById(R.id.fotoRumah);
 
+//        MENGUPLOAD FOTO KTP
         btnPickImgKTP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -93,6 +95,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         });
 
+//        MENGUPLOAD FOTO RUMAH
         btnPickImgRumah.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -121,6 +124,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         });
 
+//        UNTUK UPLOAD FOTO KE DATABASE
         btnDaftar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -150,6 +154,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         });
 
+//        DECLARE LATITUDE DAN LONGITUDE
         Latitude = findViewById(R.id.etLatitude);
         Longitude = findViewById(R.id.etLongtitude);
         btnTemukan = findViewById(R.id.btn_temukan);
@@ -160,6 +165,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         });
     }
 
+//    MENGUBAH FOTO MENJADI STRING
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         if(requestCode == 1 && resultCode == RESULT_OK && data !=null) {
@@ -167,7 +173,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             try {
                 InputStream inputStream = getContentResolver().openInputStream(filePath);
                 bitmap = BitmapFactory.decodeStream(inputStream);
-                imageView.setImageBitmap(bitmap);
+                imageViewKTP.setImageBitmap(bitmap);
                 imageStore(bitmap);
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -181,9 +187,33 @@ public class RegistrasiActivity extends AppCompatActivity {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
         byte[] imageBytes = stream.toByteArray();
         encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
-
     }
 
+    @Override
+    public void onActivityResult2(int requestCode, int resultCode, @Nullable Intent data) {
+        if(requestCode == 1 && resultCode == RESULT_OK && data !=null) {
+            Uri filePath = data.getData();
+            try {
+                InputStream inputStream = getContentResolver().openInputStream(filePath);
+                bitmapRumah = BitmapFactory.decodeStream(inputStream);
+                imageViewRumah.setImageBitmap(bitmapRumah);
+                imageStore2(bitmapRumah);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        super.onActivityResult2(requestCode, resultCode, data);
+    }
+
+    private void imageStore2(Bitmap bitmapRumah) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmapRumah.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] imageBytes = stream.toByteArray();
+        encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
+    }
+
+
+//    MENDAPATKAN TITIK KOORDINAT LATITUDE DAN LONGITUDE
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -228,3 +258,4 @@ public class RegistrasiActivity extends AppCompatActivity {
         startActivity(intent);
     }
 }
+

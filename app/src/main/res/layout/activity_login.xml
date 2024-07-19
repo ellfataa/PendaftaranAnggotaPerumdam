@@ -95,7 +95,9 @@
                 android:textStyle="bold"
                 android:textSize="16sp"
                 android:backgroundTint="@color/bluesky"
-                android:layout_marginTop="10dp" />
+                android:layout_marginTop="10dp"
+                android:onClick="login"
+                />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 

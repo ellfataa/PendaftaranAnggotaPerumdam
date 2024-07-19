@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.formregistrasi"
-        minSdk 26
+        minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -40,7 +40,6 @@ dependencies {
     implementation 'com.google.android.gms:play-services-location:21.3.0'
     implementation 'com.karumi:dexter:6.0.2'
     implementation 'com.android.volley:volley:1.2.1'
-
 }
 
 configurations {
