@@ -1,80 +1,114 @@
 package com.example.formregistrasi;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private EditText etNama, etNik;
-    private String nama, nik;
-    private final String URL = "http://10.10.2.2/pendaftaranPerumdam/login.php";
+    EditText etNama, etNik;
+    Button btnLogin;
+    ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        nama = nik = "";
-        etNama = findViewById(R.id.etNama);
-        etNik = findViewById(R.id.etNik);
+        etNama = (EditText) findViewById(R.id.etNama);
+        etNik = (EditText) findViewById(R.id.etNik);
+        btnLogin = findViewById(R.id.btnLogin);
+        progressDialog = new ProgressDialog(LoginActivity.this);
+
+        btnLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String setNama = etNama.getText().toString();
+                String setNik = etNik.getText().toString();
+
+                CheckLogin(setNama, setNik);
+            }
+        });
     }
 
-    public void btnKembali(View view) {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-        startActivity(intent);
-    }
-
-    public void login(View view) {
-        nama = etNama.getText().toString().trim();
-        nik = etNik.getText().toString().trim();
-        if(!nama.equals("") && !nik.equals("")){
-            StringRequest stringRequest = new StringRequest(Request.Method.POST, URL, new Response.Listener<String>() {
+    public void CheckLogin(final String etNama, final  String etNik){
+        if (checkNetworkConnection()){
+            progressDialog.show();
+            StringRequest stringRequest = new StringRequest(Request.Method.POST, DbContract.SERVER_LOGIN_URL, new Response.Listener<String>() {
                 @Override
                 public void onResponse(String response) {
-                    if (response.equals("success")) {
-                        Intent intent = new Intent(LoginActivity.this, Profil.class);
-                        startActivity(intent);
-                    } else if (response.equals("failure")) {
-                        Toast.makeText(LoginActivity.this, "Nama atau NIK Anda salah", Toast.LENGTH_SHORT).show();
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        String resp = jsonObject.getString("server_response");
+                        if (resp.equals("[{\"status\":\"OK\"}]")) {
+                            Toast.makeText(getApplicationContext(), "Anda Berhasil Login", Toast.LENGTH_SHORT).show();
+                        }else {
+                            Toast.makeText(getApplicationContext(), resp, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
                     }
                 }
             }, new Response.ErrorListener() {
                 @Override
                 public void onErrorResponse(VolleyError error) {
-                    Toast.makeText(LoginActivity.this, error.toString().trim(), Toast.LENGTH_SHORT).show();
+
                 }
-            }
-            ){
-                @Nullable
+            }) {
                 @Override
-                protected Map<String, String> getParams() throws AuthFailureError {
-                    Map<String, String> data = new HashMap<>();
-                    data.put("nama", nama);
-                    data.put("nik", nik);
-                    return data;
+                protected Map<String, String> getParams() throws  AuthFailureError{
+                    Map<String, String> params = new HashMap<>();
+                    params.put("nama", etNama);
+                    params.put("NIK", etNik);
+
+                    return params;
                 }
             };
-            RequestQueue requestQueue = Volley.newRequestQueue((getApplicationContext()));
-            requestQueue.add(stringRequest);
-        }else{
-            Toast.makeText(this, "Data tidak ditemukan!", Toast.LENGTH_SHORT).show();
+
+            VolleyConnection.getInstance(LoginActivity.this).addToRequestQue(stringRequest);
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    progressDialog.cancel();
+                }
+            }, 2000);
+        }else {
+            Toast.makeText(getApplicationContext(), "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public boolean checkNetworkConnection() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netwokInfo = connectivityManager.getActiveNetworkInfo();
+        return (netwokInfo != null && netwokInfo.isConnected());
+    }
+
+
+//    TOMBOL KEMBALI
+    public void btnKembali(View view) {
+        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        startActivity(intent);
     }
 }

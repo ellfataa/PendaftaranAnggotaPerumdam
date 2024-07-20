@@ -264,6 +264,20 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:text="Nomor Telepon"
+                            android:textSize="20sp"
+                            android:textColor="@color/black"
+                            android:textStyle="bold"
+                            android:layout_marginTop="10dp" />
+
+                        <EditText
+                            android:id="@+id/etNoTelp"
+                            android:layout_width="match_parent"
+                            android:layout_height="62dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:text="Kode Pos"
                             android:textSize="20sp"
                             android:textColor="@color/black"
@@ -271,7 +285,7 @@
                             android:layout_marginTop="10dp" />
 
                         <EditText
-                            android:id="@+id/et"
+                            android:id="@+id/etKodePos"
                             android:layout_width="match_parent"
                             android:layout_height="62dp" />
 

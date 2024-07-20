@@ -1,16 +1,17 @@
 package com.example.formregistrasi;
 
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Base64;
 import android.view.View;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,9 +21,9 @@ import androidx.core.app.ActivityCompat;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.android.volley.toolbox.Volley;
+import com.example.formregistrasi.databinding.ActivityRegistrasiBinding;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.karumi.dexter.Dexter;
@@ -31,6 +32,9 @@ import com.karumi.dexter.listener.PermissionDeniedResponse;
 import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -42,38 +46,115 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
+    private static final String SERVER_REGISTER_URL = "http://192.168.18.7/pendaftaranPerumdam/registrasi.php";
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 10;
 
-    Button btnPickImgKTP, btnPickImgRumah, btnDaftar;
-    ImageView imageViewKTP, imageViewRumah;
-    Bitmap bitmap, bitmapRumah;
-    String encodedImageKTP, encodedImageRumah;
-
-    private TextView Latitude, Longitude;
-    private Button btnTemukan;
-    private FusedLocationProviderClient LocationProviderClient;
+    private ActivityRegistrasiBinding binding;
+    private FusedLocationProviderClient locationProviderClient;
+    private Bitmap bitmapKTP, bitmapRumah;
+    private String encodedImageKTP, encodedImageRumah;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_registrasi);
+        binding = ActivityRegistrasiBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-        btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
-        btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
-        btnDaftar = findViewById(R.id.btnDaftar);
-        imageViewKTP = findViewById(R.id.fotoKTP);
-        imageViewRumah = findViewById(R.id.fotoRumah);
+        locationProviderClient = LocationServices.getFusedLocationProviderClient(this);
 
-        btnPickImgKTP.setOnClickListener(view -> pickImage(REQUEST_IMAGE_KTP));
-        btnPickImgRumah.setOnClickListener(view -> pickImage(REQUEST_IMAGE_RUMAH));
+        setupUIListeners();
+    }
 
-        btnDaftar.setOnClickListener(view -> uploadImages());
+    private void setupUIListeners() {
+        binding.btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
+        binding.btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
+        binding.btnDaftar.setOnClickListener(v -> attemptRegistration());
+        binding.btnTemukan.setOnClickListener(v -> getLocation());
+    }
 
-        Latitude = findViewById(R.id.etLatitude);
-        Longitude = findViewById(R.id.etLongtitude);
-        btnTemukan = findViewById(R.id.btn_temukan);
+    private void attemptRegistration() {
+        if (validateInputs()) {
+            createDataToServer();
+        } else {
+            Toast.makeText(this, "Mohon lengkapi semua data", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-        LocationProviderClient = LocationServices.getFusedLocationProviderClient(RegistrasiActivity.this);
-        btnTemukan.setOnClickListener(v -> getLocation());
+    private boolean validateInputs() {
+        return !binding.etNama.getText().toString().isEmpty()
+                && !binding.etNik.getText().toString().isEmpty()
+                && !binding.etPekerjaan.getText().toString().isEmpty()
+                && !binding.etAlamat.getText().toString().isEmpty()
+                && !binding.etRT.getText().toString().isEmpty()
+                && !binding.etRW.getText().toString().isEmpty()
+                && !binding.etKelurahan.getText().toString().isEmpty()
+                && !binding.etKecamatan.getText().toString().isEmpty()
+                && !binding.etNoTelp.getText().toString().isEmpty()
+                && !binding.etKodePos.getText().toString().isEmpty()
+                && !binding.etJumlahPenghuni.getText().toString().isEmpty()
+                && !binding.etLatitude.getText().toString().isEmpty()
+                && !binding.etLongtitude.getText().toString().isEmpty()
+                && bitmapKTP != null
+                && bitmapRumah != null;
+    }
+
+    private void createDataToServer() {
+        if (!checkNetworkConnection()) {
+            Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ProgressDialog progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Mendaftarkan...");
+        progressDialog.show();
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, SERVER_REGISTER_URL,
+                response -> handleServerResponse(response, progressDialog),
+                error -> handleServerError(error, progressDialog)) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("nama", binding.etNama.getText().toString());
+                params.put("nik", binding.etNik.getText().toString());
+                params.put("id_pekerjaan", binding.etPekerjaan.getText().toString());
+                params.put("alamat", binding.etAlamat.getText().toString());
+                params.put("rt", binding.etRT.getText().toString());
+                params.put("rw", binding.etRW.getText().toString());
+                params.put("id_kelurahan", binding.etKelurahan.getText().toString());
+                params.put("id_kecamatan", binding.etKecamatan.getText().toString());
+                params.put("kode_pos", binding.etKodePos.getText().toString());
+                params.put("jumlah_penghuni", binding.etJumlahPenghuni.getText().toString());
+                params.put("latitude", binding.etLatitude.getText().toString());
+                params.put("longitude", binding.etLongtitude.getText().toString());
+                params.put("foto_ktp", encodedImageKTP);
+                params.put("foto_rumah", encodedImageRumah);
+                return params;
+            }
+        };
+
+        VolleyConnection.getInstance(this).addToRequestQue(stringRequest);
+    }
+
+    private void handleServerResponse(String response, ProgressDialog progressDialog) {
+        progressDialog.dismiss();
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            String resp = jsonObject.getString("server_response");
+            if ("[{\"status\":\"OK\"}]".equals(resp)) {
+                Toast.makeText(this, "Anda Berhasil Registrasi", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            } else {
+                Toast.makeText(this, resp, Toast.LENGTH_SHORT).show();
+            }
+        } catch (JSONException e) {
+            Toast.makeText(this, "Error parsing server response", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void handleServerError(VolleyError error, ProgressDialog progressDialog) {
+        progressDialog.dismiss();
+        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
     private void pickImage(int requestCode) {
@@ -99,24 +180,6 @@ public class RegistrasiActivity extends AppCompatActivity {
                 }).check();
     }
 
-    private void uploadImages() {
-        StringRequest request = new StringRequest(Request.Method.POST, "http://your-actual-url.com/api-endpoint",
-                response -> Toast.makeText(RegistrasiActivity.this, response, Toast.LENGTH_SHORT).show(),
-                error -> Toast.makeText(RegistrasiActivity.this, error.getMessage(), Toast.LENGTH_SHORT).show()) {
-            @Nullable
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String, String> params = new HashMap<>();
-                params.put("imageKTP", encodedImageKTP);
-                params.put("imageRumah", encodedImageRumah);
-                return params;
-            }
-        };
-
-        RequestQueue requestQueue = Volley.newRequestQueue(RegistrasiActivity.this);
-        requestQueue.add(request);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -125,13 +188,13 @@ public class RegistrasiActivity extends AppCompatActivity {
             try {
                 InputStream inputStream = getContentResolver().openInputStream(filePath);
                 if (requestCode == REQUEST_IMAGE_KTP) {
-                    bitmap = BitmapFactory.decodeStream(inputStream);
-                    imageViewKTP.setImageBitmap(bitmap);
-                    imageStore(bitmap, true);
+                    bitmapKTP = BitmapFactory.decodeStream(inputStream);
+                    binding.fotoKTP.setImageBitmap(bitmapKTP);
+                    encodedImageKTP = encodeImage(bitmapKTP);
                 } else if (requestCode == REQUEST_IMAGE_RUMAH) {
                     bitmapRumah = BitmapFactory.decodeStream(inputStream);
-                    imageViewRumah.setImageBitmap(bitmapRumah);
-                    imageStore(bitmapRumah, false);
+                    binding.fotoRumah.setImageBitmap(bitmapRumah);
+                    encodedImageRumah = encodeImage(bitmapRumah);
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
@@ -139,16 +202,11 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    private void imageStore(Bitmap bitmap, boolean isKTP) {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byte[] imageBytes = stream.toByteArray();
-        String encodedImage = android.util.Base64.encodeToString(imageBytes, Base64.DEFAULT);
-        if (isKTP) {
-            encodedImageKTP = encodedImage;
-        } else {
-            encodedImageRumah = encodedImage;
-        }
+    private String encodeImage(Bitmap bitmap) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] imageBytes = baos.toByteArray();
+        return Base64.encodeToString(imageBytes, Base64.DEFAULT);
     }
 
     private void getLocation() {
@@ -157,12 +215,12 @@ public class RegistrasiActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this, new String[]{
                     android.Manifest.permission.ACCESS_FINE_LOCATION,
                     android.Manifest.permission.ACCESS_COARSE_LOCATION
-            }, 10);
+            }, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            LocationProviderClient.getLastLocation().addOnSuccessListener(location -> {
+            locationProviderClient.getLastLocation().addOnSuccessListener(location -> {
                 if (location != null) {
-                    Latitude.setText(String.valueOf(location.getLatitude()));
-                    Longitude.setText(String.valueOf(location.getLongitude()));
+                    binding.etLatitude.setText(String.valueOf(location.getLatitude()));
+                    binding.etLongtitude.setText(String.valueOf(location.getLongitude()));
                 } else {
                     Toast.makeText(getApplicationContext(), "Lokasi anda tidak aktif!", Toast.LENGTH_SHORT).show();
                 }
@@ -175,7 +233,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 10) {
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 getLocation();
             } else {
@@ -184,8 +242,14 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    private boolean checkNetworkConnection() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnected();
+    }
+
     public void btnKembali(View view) {
-        Intent intent = new Intent(RegistrasiActivity.this, MainActivity.class);
-        startActivity(intent);
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
     }
 }
