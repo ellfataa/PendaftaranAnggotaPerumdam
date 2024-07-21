@@ -33,6 +33,7 @@ import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -54,6 +55,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private Bitmap bitmapKTP, bitmapRumah;
     private String encodedImageKTP, encodedImageRumah;
 
+    // Menginisialisasi aktivitas dan menyiapkan UI
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -65,6 +67,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         setupUIListeners();
     }
 
+    // Menyiapkan pendengar klik untuk elemen UI
     private void setupUIListeners() {
         binding.btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         binding.btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
@@ -72,6 +75,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         binding.btnTemukan.setOnClickListener(v -> getLocation());
     }
 
+    // Mencoba mendaftarkan pengguna jika semua input valid
     private void attemptRegistration() {
         if (validateInputs()) {
             createDataToServer();
@@ -80,6 +84,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Memvalidasi semua field input
     private boolean validateInputs() {
         return !binding.etNama.getText().toString().isEmpty()
                 && !binding.etNik.getText().toString().isEmpty()
@@ -98,6 +103,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 && bitmapRumah != null;
     }
 
+    // Mengirim data registrasi ke server
     private void createDataToServer() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
@@ -126,6 +132,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 params.put("jumlah_penghuni", binding.etJumlahPenghuni.getText().toString());
                 params.put("latitude", binding.etLatitude.getText().toString());
                 params.put("longitude", binding.etLongtitude.getText().toString());
+                params.put("telp_hp", binding.etNoTelp.getText().toString());
                 params.put("foto_ktp", encodedImageKTP);
                 params.put("foto_rumah", encodedImageRumah);
                 return params;
@@ -135,28 +142,35 @@ public class RegistrasiActivity extends AppCompatActivity {
         VolleyConnection.getInstance(this).addToRequestQue(stringRequest);
     }
 
+    // Menangani respons server setelah upaya registrasi
     private void handleServerResponse(String response, ProgressDialog progressDialog) {
         progressDialog.dismiss();
         try {
             JSONObject jsonObject = new JSONObject(response);
-            String resp = jsonObject.getString("server_response");
-            if ("[{\"status\":\"OK\"}]".equals(resp)) {
-                Toast.makeText(this, "Anda Berhasil Registrasi", Toast.LENGTH_SHORT).show();
+            JSONArray serverResponse = jsonObject.getJSONArray("server_response");
+            JSONObject responseObject = serverResponse.getJSONObject(0);
+            String status = responseObject.getString("status");
+            String message = responseObject.getString("message");
+
+            if ("OK".equals(status)) {
+                Toast.makeText(this, "Registrasi berhasil: " + message, Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(this, LoginActivity.class));
                 finish();
             } else {
-                Toast.makeText(this, resp, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Registrasi gagal: " + message, Toast.LENGTH_SHORT).show();
             }
         } catch (JSONException e) {
-            Toast.makeText(this, "Error parsing server response", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error parsing server response: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
+    // Menangani kesalahan server selama registrasi
     private void handleServerError(VolleyError error, ProgressDialog progressDialog) {
         progressDialog.dismiss();
         Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
+    // Memulai proses pemilihan gambar dari galeri
     private void pickImage(int requestCode) {
         Dexter.withActivity(this)
                 .withPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -180,6 +194,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 }).check();
     }
 
+    // Menangani hasil pemilihan gambar
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -202,13 +217,16 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Mengkodekan gambar bitmap ke string Base64
     private String encodeImage(Bitmap bitmap) {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
         byte[] imageBytes = baos.toByteArray();
-        return Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        String encodedImage = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        return "data:image/jpeg;base64," + encodedImage;
     }
 
+    // Mengambil lokasi saat ini
     private void getLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -230,6 +248,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Menangani hasil permintaan izin
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -242,12 +261,14 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Memeriksa apakah ada koneksi jaringan aktif
     private boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
 
+    // Menangani klik tombol kembali
     public void btnKembali(View view) {
         startActivity(new Intent(this, MainActivity.class));
         finish();
