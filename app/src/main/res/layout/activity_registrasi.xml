@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="8dp"
-    android:background="@drawable/bgindex"
+    android:background="@drawable/bgindex3"
     tools:context=".RegistrasiActivity">
 
     <LinearLayout
@@ -43,7 +43,7 @@
             android:layout_below="@+id/logo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Form Pendaftaran Anggota PERUMDA AIR MINUM TIRTA SATRIA"
+            android:text="Form Pendaftaran Pelanggan Perumda Air Minum tirta Satria"
             android:textAlignment="center"
             android:layout_centerInParent="true"
             android:layout_alignParentTop="true"
@@ -90,7 +90,9 @@
                             android:id="@+id/etNama"
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
-                            android:hint="Masukkan nama Anda..." />
+                            android:hint="Masukkan nama Anda..."
+                            android:inputType="text"
+                            />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -105,7 +107,9 @@
                             android:id="@+id/etNik"
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
-                            android:hint="Masukan NIK Anda"/>
+                            android:hint="Masukan NIK Anda"
+                            android:inputType="number"
+                            />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -151,7 +155,9 @@
                         <EditText
                             android:id="@+id/etPekerjaan"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="text"
+                            />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -165,7 +171,9 @@
                         <EditText
                             android:id="@+id/etAlamat"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="textImeMultiLine"
+                            />
 
                     <GridLayout
                         android:layout_width="match_parent"
@@ -199,7 +207,8 @@
                                 <EditText
                                     android:id="@+id/etRT"
                                     android:layout_width="match_parent"
-                                    android:layout_height="62dp" />
+                                    android:layout_height="62dp"
+                                    android:inputType="number" />
 
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
@@ -227,7 +236,8 @@
                                 <EditText
                                     android:id="@+id/etRW"
                                     android:layout_width="match_parent"
-                                    android:layout_height="62dp" />
+                                    android:layout_height="62dp"
+                                    android:inputType="number" />
 
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
@@ -273,7 +283,9 @@
                         <EditText
                             android:id="@+id/etNoTelp"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="phone"
+                            />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -287,7 +299,9 @@
                         <EditText
                             android:id="@+id/etKodePos"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="number"
+                            />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -333,7 +347,8 @@
                         <EditText
                             android:id="@+id/etJumlahPenghuni"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="number" />
 
                         <TextView
                             android:layout_width="match_parent"

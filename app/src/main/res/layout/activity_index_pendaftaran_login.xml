@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="30dp"
+    android:background="@drawable/bgindex3"
+    tools:context=".IndexPendaftaranLogin">
+
+    <TextView
+        android:id="@+id/akun"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Akun: Belum Login"
+        android:textSize="18sp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:layout_marginBottom="10dp"
+        />
+
+    <ImageView
+        android:id="@+id/logo"
+        android:layout_width="match_parent"
+        android:layout_height="156dp"
+        android:layout_marginTop="2dp"
+        android:src="@drawable/logopdam"
+        android:contentDescription="@string/todo" />
+
+    <TextView
+        android:id="@+id/txtIndexPelanggan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pendaftaran Pelanggan Perumda Air Minum Tirta Satria"
+        android:textAlignment="center"
+        android:textSize="30sp"
+        android:textColor="@color/black"
+        android:textStyle="bold"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="20dp"
+        />
+
+    <Button
+        android:id="@+id/btn_login"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_marginTop="5dp"
+        android:backgroundTint="@color/bluesky"
+        android:text="Login Pendaftaran"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        />
+
+    <Button
+        android:id="@+id/btn_registrasi"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:layout_marginTop="5dp"
+        android:backgroundTint="@color/white"
+        android:text="Registrasi Pendaftaran"
+        android:textColor="@color/bluesky"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        />
+
+</LinearLayout>

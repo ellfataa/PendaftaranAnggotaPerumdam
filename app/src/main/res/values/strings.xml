@@ -5,4 +5,6 @@
     <string name="daftar">Daftar</string>
     <string name="login_untuk_lihat_status">Login untuk lihat status</string>
     <string name="login">Login</string>
+    <string name="hrefdaftarAkun">Belum mempunyai akun? <u>Buat Akun</u></string>
+    <string name="hrefmasukAkun">Sudah mempunyai akun? <u>Masuk Akun</u></string>
 </resources>

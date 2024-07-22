@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="30dp"
-    android:background="@drawable/bgindex"
+    android:background="@drawable/bgindex2"
     tools:context=".MainActivity">
 
     <ImageView
@@ -14,51 +14,83 @@
         android:layout_height="156dp"
         android:layout_alignParentTop="true"
         android:layout_centerInParent="true"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="2dp"
         android:src="@drawable/logopdam"
         android:contentDescription="@string/todo" />
 
     <TextView
-        android:id="@+id/txt_register"
+        android:id="@+id/txt_masuk"
         android:layout_below="@+id/logo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Masuk Akun"
         android:textAlignment="center"
         android:layout_centerInParent="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="50dp"
-        android:text="@string/pendaftaran_anggota_perumda_air_minum_tirta_satria"
+        android:textSize="30sp"
         android:textColor="@color/black"
-        android:textSize="33sp"
+        android:textStyle="bold"
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Username"
+        android:textSize="20sp"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/black"
         android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/btn_register"
+    <EditText
+        android:id="@+id/userName"
         android:layout_width="match_parent"
-        android:layout_height="70dp"
-        android:layout_below="@+id/txt_register"
-        android:layout_marginTop="80dp"
-        android:backgroundTint="@color/white"
-        android:text="@string/daftar"
-        android:textColor="@color/black"
+        android:layout_height="62dp"
+        android:hint="Masukkan username..."
+        android:inputType="text"
+        />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Password"
         android:textSize="20sp"
-        android:textStyle="bold"
-        android:onClick="btn_register"
+        android:layout_marginTop="10dp"
+        android:textColor="@color/black"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/password"
+        android:layout_width="match_parent"
+        android:layout_height="62dp"
+        android:hint="Masukkan password..."
+        android:inputType="textPassword"
         />
 
     <Button
-        android:id="@+id/btn_login"
+        android:id="@+id/btn_masuk"
         android:layout_width="match_parent"
         android:layout_height="70dp"
         android:layout_below="@+id/txt_register"
         android:layout_marginTop="5dp"
         android:backgroundTint="@color/bluesky"
-        android:text="@string/login"
+        android:text="Masuk"
         android:textColor="@color/white"
         android:textSize="20sp"
         android:textStyle="bold"
         android:onClick="btn_login"
         />
 
+    <TextView
+        android:id="@+id/daftarText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/hrefdaftarAkun"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:textAlignment="center"
+        android:layout_centerInParent="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="20dp"
+        />
 
 </LinearLayout>

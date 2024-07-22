@@ -47,7 +47,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
-    private static final String SERVER_REGISTER_URL = "http://192.168.18.7/pendaftaranPerumdam/registrasi.php";
+    private static final String SERVER_REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 10;
 
     private ActivityRegistrasiBinding binding;

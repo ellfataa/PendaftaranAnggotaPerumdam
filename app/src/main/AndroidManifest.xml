@@ -19,6 +19,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".IndexPendaftaranLogin"
+            android:exported="false" />
+        <activity
+            android:name=".BuatUser"
+            android:exported="false" />
+        <activity
             android:name=".Profil"
             android:exported="false" />
         <activity
