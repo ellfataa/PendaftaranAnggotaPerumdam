@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="30dp"
-    android:background="@drawable/bgindex3"
+    android:background="@drawable/bgindex2"
     tools:context=".IndexPendaftaranLogin">
 
     <TextView
@@ -39,6 +39,7 @@
         android:textStyle="bold"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="20dp"
+        android:visibility="visible"
         />
 
     <Button
@@ -51,6 +52,7 @@
         android:textColor="@color/white"
         android:textSize="20sp"
         android:textStyle="bold"
+        android:visibility="visible"
         />
 
     <Button
@@ -58,11 +60,12 @@
         android:layout_width="match_parent"
         android:layout_height="70dp"
         android:layout_marginTop="5dp"
-        android:backgroundTint="@color/white"
+        android:backgroundTint="@color/softblue"
         android:text="Registrasi Pendaftaran"
         android:textColor="@color/bluesky"
         android:textSize="20sp"
         android:textStyle="bold"
+        android:visibility="visible"
         />
 
 </LinearLayout>
