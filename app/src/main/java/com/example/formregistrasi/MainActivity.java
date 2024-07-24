@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btn_masuk;
     private EditText et_userAkun, et_passwordAkun;
 
-    private static final String URL_LOGIN = "http://192.168.230.122/pendaftaranPerumdam/masukAkun.php";
+    private static final String URL_LOGIN = "http://192.168.230.124/pendaftaranPerumdam/masukAkun.php";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

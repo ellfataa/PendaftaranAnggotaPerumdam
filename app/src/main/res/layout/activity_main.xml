@@ -80,6 +80,14 @@
         android:onClick="btn_login"
         />
 
+    <Button
+        android:id="@+id/tvLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Login menggunakan Google"
+        android:layout_centerInParent="true"
+        />
+
     <TextView
         android:id="@+id/daftarText"
         android:layout_width="match_parent"

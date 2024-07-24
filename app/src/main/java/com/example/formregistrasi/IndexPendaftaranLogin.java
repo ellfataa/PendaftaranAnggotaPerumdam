@@ -27,7 +27,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private TextView akun, txtIndexPelanggan;
     private SharedPreferences sharedPreferences;
 
-    private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/indexPelangganLogin.php";
+    private static final String REGISTER_URL = "http://192.168.230.124/pendaftaranPerumdam/indexPelangganLogin.php";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

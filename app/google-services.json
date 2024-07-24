@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "979354665299",
+    "project_id": "mylogin-1a3cc",
+    "storage_bucket": "mylogin-1a3cc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:979354665299:android:4aa174f03c11e1446d61a6",
+        "android_client_info": {
+          "package_name": "com.millenialzdev.myloginwithgoogleaccount"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2kgj3sS3pexLoqvr5dJBj7b0phx9fejA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

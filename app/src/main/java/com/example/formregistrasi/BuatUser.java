@@ -35,7 +35,7 @@ public class BuatUser extends AppCompatActivity {
     private EditText namaLengkap, userName, emailAkun, password;
     private Button btn_buat;
 
-    private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/buatAkun.php";
+    private static final String REGISTER_URL = "http://192.168.230.124/pendaftaranPerumdam/buatAkun.php";
     private RequestQueue requestQueue;
 
     @Override

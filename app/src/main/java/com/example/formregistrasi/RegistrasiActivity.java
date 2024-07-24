@@ -1,5 +1,6 @@
 package com.example.formregistrasi;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -12,6 +13,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.InputFilter;
 import android.text.Spanned;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -29,6 +31,16 @@ import androidx.core.app.ActivityCompat;
 import com.android.volley.Request;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,7 +52,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegistrasiActivity extends AppCompatActivity {
+public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
@@ -50,7 +62,9 @@ public class RegistrasiActivity extends AppCompatActivity {
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
     private ImageView fotoKTP, fotoRumah;
     private String fotoKTPBase64, fotoRumahBase64;
-    private Button btnKembali, btnDaftar, btnTemukanLokasi, btnPickImgKTP, btnPickImgRumah;
+    private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah;
+
+    private Marker currentLocationMarker;
 
     private InputFilter getTextOnlyFilter() {
         return new InputFilter() {
@@ -66,6 +80,9 @@ public class RegistrasiActivity extends AppCompatActivity {
         };
     }
 
+    //    nambahin map ah
+    private GoogleMap gMap;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +91,9 @@ public class RegistrasiActivity extends AppCompatActivity {
         initializeViews();
         setListeners();
         fetchDropdownData();
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.idMap);
+        mapFragment.getMapAsync(this);
     }
 
     private void initializeViews() {
@@ -98,7 +118,6 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         btnKembali = findViewById(R.id.btnKembali);
         btnDaftar = findViewById(R.id.btnDaftar);
-        btnTemukanLokasi = findViewById(R.id.btn_temukan);
         btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
         btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
     }
@@ -106,7 +125,6 @@ public class RegistrasiActivity extends AppCompatActivity {
     private void setListeners() {
         btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
-        btnTemukanLokasi.setOnClickListener(v -> getLocation());
         btnDaftar.setOnClickListener(v -> registerUser());
         btnKembali.setOnClickListener(this::btnKembali);
     }
@@ -135,7 +153,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+        String url = "http://192.168.230.124/pendaftaranPerumdam/registrasi.php";
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 response -> {
@@ -211,7 +229,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+        String url = "http://192.168.230.124/pendaftaranPerumdam/registrasi.php";
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 response -> {
@@ -308,18 +326,19 @@ public class RegistrasiActivity extends AppCompatActivity {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
         byte[] byteArray = byteArrayOutputStream.toByteArray();
-        return android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT);
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-        private void getLocation() {
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-            return;
+        private LatLng getLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+            return null;
         }
 
         // Fetch location logic here
-    }
+            return null;
+        }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -343,5 +362,78 @@ public class RegistrasiActivity extends AppCompatActivity {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
 
+    }
+
+
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        gMap = googleMap;
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+            return;
+        }
+
+        // Mengaktifkan kontrol zoom dan gestur
+        gMap.getUiSettings().setZoomControlsEnabled(true);
+        gMap.getUiSettings().setZoomGesturesEnabled(true);
+        gMap.getUiSettings().setScrollGesturesEnabled(true);
+        gMap.getUiSettings().setRotateGesturesEnabled(true);
+        gMap.getUiSettings().setTiltGesturesEnabled(true);
+
+        gMap.setMyLocationEnabled(true);
+        gMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+        FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, location -> {
+                    if (location != null) {
+                        LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+
+                        // Tambahkan marker yang dapat digeser
+                        currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                                .position(currentLocation)
+                                .title("Lokasi yang Dipilih")
+                                .draggable(true));
+
+                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
+
+                        updateLocationFields(currentLocation);
+                    }
+                });
+
+        // Listener untuk pergerakan marker
+        gMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDragStart(Marker marker) {}
+
+            @Override
+            public void onMarkerDrag(Marker marker) {}
+
+            @Override
+            public void onMarkerDragEnd(Marker marker) {
+                LatLng newPosition = marker.getPosition();
+                updateLocationFields(newPosition);
+            }
+        });
+
+        // Listener untuk klik pada peta
+        gMap.setOnMapClickListener(latLng -> {
+            if (currentLocationMarker != null) {
+                currentLocationMarker.setPosition(latLng);
+            } else {
+                currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title("Lokasi yang Dipilih")
+                        .draggable(true));
+            }
+            updateLocationFields(latLng);
+        });
+    }
+
+    private void updateLocationFields(LatLng location) {
+        etLatitude.setText(String.format("%.6f", location.latitude));
+        etLongitude.setText(String.format("%.6f", location.longitude));
     }
 }

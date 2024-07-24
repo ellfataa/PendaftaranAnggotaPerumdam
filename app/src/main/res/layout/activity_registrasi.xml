@@ -418,13 +418,13 @@
                             android:layout_width="match_parent"
                             android:layout_height="62dp" />
 
-                        <Button
-                            android:id="@+id/btn_temukan"
+
+
+                        <fragment
+                            android:id="@+id/idMap"
+                            android:name="com.google.android.gms.maps.SupportMapFragment"
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="14dp"
-                            android:textAllCaps="false"
-                            android:text="Temukan Lokasi" />
+                            android:layout_height="100dp" />
 
                         <Button
                             android:id="@+id/btnDaftar"
