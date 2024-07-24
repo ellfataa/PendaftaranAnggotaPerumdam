@@ -10,6 +10,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -47,13 +48,19 @@ public class RegistrasiActivity extends AppCompatActivity {
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
     private ImageView fotoKTP, fotoRumah;
     private String fotoKTPBase64, fotoRumahBase64;
-    private Button btnKembali ,btnDaftar, btnTemukanLokasi, btnPickImgKTP, btnPickImgRumah;
+    private Button btnKembali, btnDaftar, btnTemukanLokasi, btnPickImgKTP, btnPickImgRumah;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registrasi);
 
+        initializeViews();
+        setListeners();
+        fetchDropdownData();
+    }
+
+    private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNik = findViewById(R.id.etNik);
         etAlamat = findViewById(R.id.etAlamat);
@@ -77,97 +84,14 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnTemukanLokasi = findViewById(R.id.btn_temukan);
         btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
         btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
+    }
 
+    private void setListeners() {
         btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
         btnTemukanLokasi.setOnClickListener(v -> getLocation());
         btnDaftar.setOnClickListener(v -> registerUser());
-
-        fetchDropdownData();
-    }
-
-    private void fetchDropdownData() {
-        // URL to your server-side script that fetches dropdown data
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
-
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url, response -> {
-            try {
-                JSONObject jsonObject = new JSONObject(response);
-                JSONArray pekerjaanArray = jsonObject.getJSONArray("pekerjaan");
-                JSONArray kelurahanArray = jsonObject.getJSONArray("kelurahan");
-                JSONArray kecamatanArray = jsonObject.getJSONArray("kecamatan");
-
-                populateDropdown(pekerjaanArray, idPekerjaan);
-                populateDropdown(kelurahanArray, idKelurahan);
-                populateDropdown(kecamatanArray, idKecamatan);
-
-            } catch (JSONException e) {
-                e.printStackTrace();
-                Toast.makeText(getApplicationContext(), "Error parsing JSON data", Toast.LENGTH_SHORT).show();
-            }
-        }, error -> Toast.makeText(getApplicationContext(), "Error fetching data", Toast.LENGTH_SHORT).show());
-
-        Volley.newRequestQueue(this).add(stringRequest);
-    }
-
-    private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView) {
-        String[] items = new String[jsonArray.length()];
-        for (int i = 0; i < jsonArray.length(); i++) {
-            try {
-                items[i] = jsonArray.getString(i);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, items);
-        autoCompleteTextView.setAdapter(adapter);
-    }
-
-    private void registerUser() {
-        if (!checkNetworkConnection()) {
-            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
-
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, url, response -> {
-            try {
-                JSONObject jsonObject = new JSONObject(response);
-                boolean success = jsonObject.getBoolean("success");
-                if (success) {
-                    Toast.makeText(getApplicationContext(), "Registration successful", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(getApplicationContext(), "Registration failed", Toast.LENGTH_SHORT).show();
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-                Toast.makeText(getApplicationContext(), "Error parsing response", Toast.LENGTH_SHORT).show();
-            }
-        }, error -> Toast.makeText(getApplicationContext(), "Error during registration", Toast.LENGTH_SHORT).show()) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("nama", etNama.getText().toString());
-                params.put("nik", etNik.getText().toString());
-                params.put("alamat", etAlamat.getText().toString());
-                params.put("rt", etRT.getText().toString());
-                params.put("rw", etRW.getText().toString());
-                params.put("no_telp", etNoTelp.getText().toString());
-                params.put("kode_pos", etKodePos.getText().toString());
-                params.put("jumlah_penghuni", etJumlahPenghuni.getText().toString());
-                params.put("latitude", etLatitude.getText().toString());
-                params.put("longitude", etLongitude.getText().toString());
-                params.put("pekerjaan", idPekerjaan.getText().toString());
-                params.put("kelurahan", idKelurahan.getText().toString());
-                params.put("kecamatan", idKecamatan.getText().toString());
-                params.put("foto_ktp", fotoKTPBase64);
-                params.put("foto_rumah", fotoRumahBase64);
-                return params;
-            }
-        };
-
-        Volley.newRequestQueue(this).add(stringRequest);
+        btnKembali.setOnClickListener(this::btnKembali);
     }
 
     private void pickImage(int requestCode) {
@@ -186,6 +110,163 @@ public class RegistrasiActivity extends AppCompatActivity {
                 processImage(imageUri, false);
             }
         }
+    }
+
+    private void fetchDropdownData() {
+        if (!checkNetworkConnection()) {
+            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    Log.d("RegistrasiActivity", "Raw Response: " + response);
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+
+                        if (jsonObject.has("kecamatan")) {
+                            JSONArray kecamatanArray = jsonObject.getJSONArray("kecamatan");
+                            populateDropdown(kecamatanArray, idKecamatan, "kecamatan");
+                        }
+
+                        if (jsonObject.has("kelurahan")) {
+                            JSONArray kelurahanArray = jsonObject.getJSONArray("kelurahan");
+                            populateDropdown(kelurahanArray, idKelurahan, "kelurahan");
+                        }
+
+                        if (jsonObject.has("pekerjaan")) {
+                            JSONArray pekerjaanArray = jsonObject.getJSONArray("pekerjaan");
+                            populateDropdown(pekerjaanArray, idPekerjaan, "pekerjaan");
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(getApplicationContext(), "Error parsing JSON data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> {
+                    error.printStackTrace();
+                    Log.e("RegistrasiActivity", "Error: " + error.toString());
+                    Toast.makeText(getApplicationContext(), "Error fetching data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+
+        Volley.newRequestQueue(this).add(stringRequest);
+    }
+
+    private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
+        try {
+            Map<String, String> itemMap = new HashMap<>();
+            String[] items = new String[jsonArray.length()];
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject item = jsonArray.getJSONObject(i);
+                String id = item.getString("id");
+                String nama = item.has("nama") ? item.getString("nama") :
+                        (item.has("nama_" + type) ? item.getString("nama_" + type) : "Unknown");
+                items[i] = nama;
+                itemMap.put(nama, id);
+            }
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, items);
+            autoCompleteTextView.setAdapter(adapter);
+
+            autoCompleteTextView.setTag(itemMap);
+
+            autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
+                String selectedName = (String) parent.getItemAtPosition(position);
+                String selectedId = itemMap.get(selectedName);
+                Log.d("RegistrasiActivity", type + " selected: " + selectedName + " (ID: " + selectedId + ")");
+            });
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.e("RegistrasiActivity", "Error populating " + type + " dropdown: " + e.getMessage());
+            Toast.makeText(getApplicationContext(), "Error populating " + type + " dropdown: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void registerUser() {
+        if (!checkNetworkConnection()) {
+            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!validateFields()) {
+            Toast.makeText(this, "Please fill all required fields", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                response -> {
+                    Log.d("RegistrasiActivity", "Registration Response: " + response);
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        String status = jsonObject.getString("status");
+                        String message = jsonObject.getString("message");
+
+                        if (status.equals("OK")) {
+                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                            // Handle successful registration (e.g., clear form, navigate to another activity)
+                        } else {
+                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(getApplicationContext(), "Error parsing response: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> Toast.makeText(getApplicationContext(), "Error during registration: " + error.getMessage(), Toast.LENGTH_SHORT).show()) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("nama", etNama.getText().toString());
+                params.put("nik", etNik.getText().toString());
+                params.put("alamat", etAlamat.getText().toString());
+                params.put("rt", etRT.getText().toString());
+                params.put("rw", etRW.getText().toString());
+                params.put("telp_hp", etNoTelp.getText().toString());
+                params.put("kode_pos", etKodePos.getText().toString());
+                params.put("jumlah_penghuni", etJumlahPenghuni.getText().toString());
+                params.put("latitude", etLatitude.getText().toString());
+                params.put("longitude", etLongitude.getText().toString());
+
+                Map<String, String> pekerjaanMap = (Map<String, String>) idPekerjaan.getTag();
+                Map<String, String> kelurahanMap = (Map<String, String>) idKelurahan.getTag();
+                Map<String, String> kecamatanMap = (Map<String, String>) idKecamatan.getTag();
+
+                params.put("id_pekerjaan", pekerjaanMap.get(idPekerjaan.getText().toString()));
+                params.put("id_kelurahan", kelurahanMap.get(idKelurahan.getText().toString()));
+                params.put("id_kecamatan", kecamatanMap.get(idKecamatan.getText().toString()));
+
+                params.put("foto_ktp", "data:image/jpeg;base64," + fotoKTPBase64);
+                params.put("foto_rumah", "data:image/jpeg;base64," + fotoRumahBase64);
+                return params;
+            }
+        };
+
+        Volley.newRequestQueue(this).add(stringRequest);
+    }
+
+    private boolean validateFields() {
+        // Add validation for all required fields
+        if (etNama.getText().toString().isEmpty() ||
+                etNik.getText().toString().isEmpty() ||
+                etAlamat.getText().toString().isEmpty() ||
+                etRT.getText().toString().isEmpty() ||
+                etRW.getText().toString().isEmpty() ||
+                etNoTelp.getText().toString().isEmpty() ||
+                etKodePos.getText().toString().isEmpty() ||
+                etJumlahPenghuni.getText().toString().isEmpty() ||
+                etLatitude.getText().toString().isEmpty() ||
+                etLongitude.getText().toString().isEmpty() ||
+                idPekerjaan.getText().toString().isEmpty() ||
+                idKelurahan.getText().toString().isEmpty() ||
+                idKecamatan.getText().toString().isEmpty() ||
+                fotoKTPBase64 == null ||
+                fotoRumahBase64 == null) {
+            return false;
+        }
+        return true;
     }
 
     private void processImage(Uri imageUri, boolean isKTP) {
@@ -213,7 +294,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         return android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT);
     }
 
-    private void getLocation() {
+        private void getLocation() {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
@@ -244,5 +325,6 @@ public class RegistrasiActivity extends AppCompatActivity {
     public void btnKembali(View view) {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
+
     }
 }
