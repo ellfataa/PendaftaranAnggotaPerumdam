@@ -182,6 +182,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
                             android:inputType="textImeMultiLine"
+                            android:hint="Masukan Alamat Anda..."
                             />
 
                     <GridLayout
@@ -217,7 +218,9 @@
                                     android:id="@+id/etRT"
                                     android:layout_width="match_parent"
                                     android:layout_height="62dp"
-                                    android:inputType="number" />
+                                    android:inputType="number"
+                                    android:hint="Masukan RT..."
+                                    />
 
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
@@ -246,7 +249,9 @@
                                     android:id="@+id/etRW"
                                     android:layout_width="match_parent"
                                     android:layout_height="62dp"
-                                    android:inputType="number" />
+                                    android:inputType="number"
+                                    android:hint="Masukan RW..."
+                                    />
 
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
@@ -316,6 +321,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
                             android:inputType="phone"
+                            android:hint="Masukan nomor telepon Anda..."
                             />
 
                         <TextView
@@ -332,6 +338,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
                             android:inputType="number"
+                            android:hint="Masukan kode pos Anda..."
                             />
 
                         <TextView
@@ -379,7 +386,9 @@
                             android:id="@+id/etJumlahPenghuni"
                             android:layout_width="match_parent"
                             android:layout_height="62dp"
-                            android:inputType="number" />
+                            android:inputType="number"
+                            android:hint="Masukan jumlah penghuni rumah Anda..."
+                            />
 
                         <TextView
                             android:layout_width="match_parent"

@@ -10,6 +10,8 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.InputFilter;
+import android.text.Spanned;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -50,6 +52,20 @@ public class RegistrasiActivity extends AppCompatActivity {
     private String fotoKTPBase64, fotoRumahBase64;
     private Button btnKembali, btnDaftar, btnTemukanLokasi, btnPickImgKTP, btnPickImgRumah;
 
+    private InputFilter getTextOnlyFilter() {
+        return new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                for (int i = start; i < end; i++) {
+                    if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
+                        return "";
+                    }
+                }
+                return null;
+            }
+        };
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +78,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
+        etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
         etNik = findViewById(R.id.etNik);
         etAlamat = findViewById(R.id.etAlamat);
         etRT = findViewById(R.id.etRT);
