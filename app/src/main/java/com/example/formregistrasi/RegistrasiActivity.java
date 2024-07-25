@@ -3,6 +3,7 @@ package com.example.formregistrasi;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -28,10 +29,12 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -39,8 +42,6 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -65,6 +66,8 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah;
 
     private Marker currentLocationMarker;
+
+    private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
 
     private InputFilter getTextOnlyFilter() {
         return new InputFilter() {
@@ -147,19 +150,31 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
         }
     }
 
+    private void organizeKelurahanByKecamatan(JSONArray kelurahanArray) throws JSONException {
+        for (int i = 0; i < kelurahanArray.length(); i++) {
+            JSONObject kelurahan = kelurahanArray.getJSONObject(i);
+            String idKecamatan = kelurahan.getString("id_kecamatan");
+            if (!kelurahanByKecamatan.containsKey(idKecamatan)) {
+                kelurahanByKecamatan.put(idKecamatan, new JSONArray());
+            }
+            kelurahanByKecamatan.get(idKecamatan).put(kelurahan);
+        }
+    }
+
     private void fetchDropdownData() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String url = "http://192.168.230.124/pendaftaranPerumdam/registrasi.php";
+        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
 
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 response -> {
                     Log.d("RegistrasiActivity", "Raw Response: " + response);
                     try {
                         JSONObject jsonObject = new JSONObject(response);
+                        Log.d("RegistrasiActivity", "Parsed JSON: " + jsonObject.toString());
 
                         if (jsonObject.has("kecamatan")) {
                             JSONArray kecamatanArray = jsonObject.getJSONArray("kecamatan");
@@ -168,7 +183,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
                         if (jsonObject.has("kelurahan")) {
                             JSONArray kelurahanArray = jsonObject.getJSONArray("kelurahan");
-                            populateDropdown(kelurahanArray, idKelurahan, "kelurahan");
+                            organizeKelurahanByKecamatan(kelurahanArray);
                         }
 
                         if (jsonObject.has("pekerjaan")) {
@@ -177,16 +192,40 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        Toast.makeText(getApplicationContext(), "Error parsing JSON data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Log.e("RegistrasiActivity", "JSON Parsing Error: " + e.getMessage());
                     }
                 },
-                error -> {
-                    error.printStackTrace();
-                    Log.e("RegistrasiActivity", "Error: " + error.toString());
-                    Toast.makeText(getApplicationContext(), "Error fetching data: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                    error -> {
+                        error.printStackTrace();
+                        String errorMessage = "Error fetching data: ";
+                        if (error.networkResponse != null) {
+                            errorMessage += "Status Code: " + error.networkResponse.statusCode;
+                        } else if (error.getMessage() != null) {
+                            errorMessage += error.getMessage();
+                        } else {
+                            errorMessage += "Unknown error occurred";
+                        }
+                        Log.e("RegistrasiActivity", errorMessage);
+                        Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
+                    });
+
+        // Tambahkan timeout yang lebih lama
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                30000, // 30 seconds timeout
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         Volley.newRequestQueue(this).add(stringRequest);
+    }
+
+    private void populateKelurahanDropdown(String idKecamatan) {
+        JSONArray kelurahanArray = kelurahanByKecamatan.get(idKecamatan);
+        if (kelurahanArray != null) {
+            populateDropdown(kelurahanArray, idKelurahan, "kelurahan");
+        } else {
+            idKelurahan.setText("");
+            idKelurahan.setAdapter(null);
+        }
     }
 
     private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
@@ -206,11 +245,20 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
             autoCompleteTextView.setTag(itemMap);
 
-            autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
-                String selectedName = (String) parent.getItemAtPosition(position);
-                String selectedId = itemMap.get(selectedName);
-                Log.d("RegistrasiActivity", type + " selected: " + selectedName + " (ID: " + selectedId + ")");
-            });
+            if (type.equals("kecamatan")) {
+                autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
+                    String selectedName = (String) parent.getItemAtPosition(position);
+                    String selectedId = itemMap.get(selectedName);
+                    Log.d("RegistrasiActivity", type + " selected: " + selectedName + " (ID: " + selectedId + ")");
+                    populateKelurahanDropdown(selectedId);
+                });
+            } else {
+                autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
+                    String selectedName = (String) parent.getItemAtPosition(position);
+                    String selectedId = itemMap.get(selectedName);
+                    Log.d("RegistrasiActivity", type + " selected: " + selectedName + " (ID: " + selectedId + ")");
+                });
+            }
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e("RegistrasiActivity", "Error populating " + type + " dropdown: " + e.getMessage());
@@ -229,7 +277,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
             return;
         }
 
-        String url = "http://192.168.230.124/pendaftaranPerumdam/registrasi.php";
+        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 response -> {
@@ -241,7 +289,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
                         if (status.equals("OK")) {
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-                            // Handle successful registration (e.g., clear form, navigate to another activity)
+                            onRegistrationSuccess();
                         } else {
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
                         }
@@ -329,7 +377,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-        private LatLng getLocation() {
+    private LatLng getLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
@@ -337,8 +385,8 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
         }
 
         // Fetch location logic here
-            return null;
-        }
+        return null;
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -364,6 +412,31 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
     }
 
+    private void simpanStatusRegistrasi(String nik) {
+        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor editor = registrationPrefs.edit();
+        editor.putBoolean(nik + "_registered", true);
+        editor.apply();
+    }
+
+    private void onRegistrationSuccess() {
+        String nik = etNik.getText().toString();
+
+        SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor loginEditor = loginPrefs.edit();
+        loginEditor.putString("NIK", nik);
+        loginEditor.apply();
+
+        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor registrationEditor = registrationPrefs.edit();
+        registrationEditor.putBoolean(nik + "_registered", true);
+        registrationEditor.apply();
+
+        Intent intent = new Intent(RegistrasiActivity.this, Status.class);
+        intent.putExtra("NIK", nik);
+        startActivity(intent);
+        finish();
+    }
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {

@@ -165,7 +165,7 @@
                                 android:layout_height="wrap_content"
                                 android:inputType="none"
                                 android:completionThreshold="1"
-                                />
+                                android:minHeight="48dp" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                         <TextView
@@ -184,6 +184,56 @@
                             android:inputType="textImeMultiLine"
                             android:hint="Masukan Alamat Anda..."
                             />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Kecamatan"
+                        android:textSize="20sp"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="10dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:hint="Pilih kecamatan Anda..."
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/idKecamatan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:completionThreshold="1"
+                            />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Kelurahan"
+                        android:textSize="20sp"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="10dp" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:hint="Pilih kelurahan Anda..."
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu">
+
+                        <AutoCompleteTextView
+                            android:id="@+id/idKelurahan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="none"
+                            android:completionThreshold="1"
+                            />
+                    </com.google.android.material.textfield.TextInputLayout>
 
                     <GridLayout
                         android:layout_width="match_parent"
@@ -256,56 +306,6 @@
                             </LinearLayout>
                         </androidx.cardview.widget.CardView>
                     </GridLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Kelurahan"
-                            android:textSize="20sp"
-                            android:textColor="@color/black"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:hint="Pilih kelurahan Anda..."
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu">
-
-                            <AutoCompleteTextView
-                                android:id="@+id/idKelurahan"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="none"
-                                android:completionThreshold="1"
-                                />
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Kecamatan"
-                            android:textSize="20sp"
-                            android:textColor="@color/black"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
-
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="2dp"
-                            android:hint="Pilih kecamatan Anda..."
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu">
-
-                            <AutoCompleteTextView
-                                android:id="@+id/idKecamatan"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="none"
-                                android:completionThreshold="1"
-                                />
-                        </com.google.android.material.textfield.TextInputLayout>
 
                         <TextView
                             android:layout_width="match_parent"
@@ -418,13 +418,12 @@
                             android:layout_width="match_parent"
                             android:layout_height="62dp" />
 
-
-
                         <fragment
                             android:id="@+id/idMap"
                             android:name="com.google.android.gms.maps.SupportMapFragment"
                             android:layout_width="match_parent"
-                            android:layout_height="100dp" />
+                            android:layout_height="200dp"
+                            android:layout_marginTop="10dp" />
 
                         <Button
                             android:id="@+id/btnDaftar"

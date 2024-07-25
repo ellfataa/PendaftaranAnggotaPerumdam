@@ -82,7 +82,7 @@ public class LoginActivity extends AppCompatActivity {
 
                                 if (status.equals("OK")) {
                                     Toast.makeText(getApplicationContext(), "Login berhasil", Toast.LENGTH_SHORT).show();
-                                    Intent intent = new Intent(LoginActivity.this, Profil.class);
+                                    Intent intent = new Intent(LoginActivity.this, Status.class);
                                     intent.putExtra("nama", nama);
                                     intent.putExtra("nik", nik);
                                     startActivity(intent);

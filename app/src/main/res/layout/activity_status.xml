@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="25dp"
+    android:background="@drawable/bgindex2"
+    tools:context=".Status">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btnKembali"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="kembali"
+                android:textColor="@color/black"
+                android:background="@color/transparent"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:onClick="btnKembali"
+                />
+
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_alignParentEnd="true"
+                android:src="@drawable/logopdam" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:text="status"
+            android:textColor="#4CAF50"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/tvNama"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nama Anda"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvNik"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NIK Anda"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvAlamat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alamat Anda"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvRt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RT"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvRw"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RW"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvTelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nomor telepon Anda"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvKodePos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kode Pos Anda"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvJumlahPenghuni"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Jumlah Penghuni"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvPekerjaan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pekerjaan"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvKelurahan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kelurahan"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvKecamatan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kecamatan"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvLatitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Latitude"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvLongitude"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Longitude"
+            android:layout_marginBottom="8dp"/>
+
+    </LinearLayout>
+
+</ScrollView>

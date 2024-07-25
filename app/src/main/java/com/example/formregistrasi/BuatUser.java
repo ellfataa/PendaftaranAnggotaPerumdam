@@ -35,9 +35,13 @@ public class BuatUser extends AppCompatActivity {
     private EditText namaLengkap, userName, emailAkun, password;
     private Button btn_buat;
 
-    private static final String REGISTER_URL = "http://192.168.230.124/pendaftaranPerumdam/buatAkun.php";
+    private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/buatAkun.php";
     private RequestQueue requestQueue;
 
+    /**
+     * Metode ini dipanggil saat aktivitas pertama kali dibuat.
+     * Ini menginisialisasi UI, menyiapkan listener, dan mengatur filter input.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +89,10 @@ public class BuatUser extends AppCompatActivity {
         });
     }
 
+    /**
+     * Memvalidasi input pengguna sebelum melakukan pendaftaran.
+     * @return true jika semua input valid, false jika tidak.
+     */
     private boolean validateInput() {
         String namaAkun = namaLengkap.getText().toString().trim();
         String userAkun = userName.getText().toString().trim();
@@ -105,6 +113,10 @@ public class BuatUser extends AppCompatActivity {
         return true;
     }
 
+    /**
+     * Melakukan pendaftaran pengguna dengan mengirimkan data ke server.
+     * Menampilkan dialog progress selama proses berlangsung.
+     */
     private void registerUser() {
         final String namaAkun = namaLengkap.getText().toString().trim();
         final String userAkun = userName.getText().toString().trim();
