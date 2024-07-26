@@ -92,6 +92,7 @@
                             android:layout_height="62dp"
                             android:hint="Masukkan nama Anda..."
                             android:inputType="text"
+                            android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ "
                             />
 
                         <TextView
@@ -109,6 +110,7 @@
                             android:layout_height="62dp"
                             android:hint="Masukan NIK Anda..."
                             android:inputType="number"
+                            android:maxLength="16"
                             />
 
                         <TextView
@@ -413,7 +415,9 @@
                         <EditText
                             android:id="@+id/etLatitude"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="none"
+                            android:focusable="false" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -427,7 +431,9 @@
                         <EditText
                             android:id="@+id/etLongtitude"
                             android:layout_width="match_parent"
-                            android:layout_height="62dp" />
+                            android:layout_height="62dp"
+                            android:inputType="none"
+                            android:focusable="false" />
 
                         <fragment
                             android:id="@+id/idMap"

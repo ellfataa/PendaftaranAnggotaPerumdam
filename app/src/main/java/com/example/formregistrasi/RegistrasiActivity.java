@@ -55,6 +55,7 @@ import java.util.Map;
 
 public class  RegistrasiActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    private static final int REQUEST_CODE_MAP = 1001;
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -63,7 +64,7 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
     private ImageView fotoKTP, fotoRumah;
     private String fotoKTPBase64, fotoRumahBase64;
-    private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah;
+    private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
 
     private Marker currentLocationMarker;
 
@@ -74,7 +75,13 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_registrasi);
+        try {
+            setContentView(R.layout.activity_registrasi);
+            // Inisialisasi views dan setup lainnya
+        } catch (Exception e) {
+            Log.e("RegistrasiActivity", "Error in onCreate", e);
+            Toast.makeText(this, "Terjadi kesalahan: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
 
         initializeViews();
         setListeners();
@@ -82,6 +89,8 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.idMap);
         mapFragment.getMapAsync(this);
+
+        btnPeta.setOnClickListener(v -> openMap());
     }
 
     private void initializeViews() {
@@ -108,6 +117,7 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         btnDaftar = findViewById(R.id.btnDaftar);
         btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
         btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
+        btnPeta = findViewById(R.id.btnPeta);
     }
 
     private void setListeners() {
@@ -115,6 +125,7 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
         btnDaftar.setOnClickListener(v -> registerUser());
         btnKembali.setOnClickListener(this::btnKembali);
+        btnPeta.setOnClickListener(v -> openMap());
     }
 
     private void pickImage(int requestCode) {
@@ -126,13 +137,40 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK && data != null) {
-            Uri imageUri = data.getData();
-            if (requestCode == REQUEST_IMAGE_KTP) {
+            if (requestCode == REQUEST_CODE_MAP) {
+                String latitude = data.getStringExtra("SELECTED_LATITUDE");
+                String longitude = data.getStringExtra("SELECTED_LONGITUDE");
+
+                // Mengisi field latitude dan longitude di RegistrasiActivity
+                etLatitude.setText(latitude);
+                etLongitude.setText(longitude);
+
+                // Update marker pada peta jika diperlukan
+                if (gMap != null) {
+                    LatLng selectedLocation = new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude));
+                    updateMapMarker(selectedLocation);
+                }
+            } else if (requestCode == REQUEST_IMAGE_KTP) {
+                Uri imageUri = data.getData();
                 processImage(imageUri, true);
             } else if (requestCode == REQUEST_IMAGE_RUMAH) {
+                Uri imageUri = data.getData();
                 processImage(imageUri, false);
             }
         }
+    }
+
+    private void updateMapMarker(LatLng location) {
+        if (currentLocationMarker != null) {
+            currentLocationMarker.setPosition(location);
+        } else {
+            currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                    .position(location)
+                    .title("Lokasi yang Dipilih")
+                    .draggable(true));
+        }
+        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
+        updateLocationFields(location);
     }
 
     private void organizeKelurahanByKecamatan(JSONArray kelurahanArray) throws JSONException {
@@ -318,6 +356,7 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         // Add validation for all required fields
         if (etNama.getText().toString().isEmpty() ||
                 etNik.getText().toString().isEmpty() ||
+                etNik.getText().toString().length() != 16 ||
                 etAlamat.getText().toString().isEmpty() ||
                 etRT.getText().toString().isEmpty() ||
                 etRW.getText().toString().isEmpty() ||
@@ -329,8 +368,10 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
                 idPekerjaan.getText().toString().isEmpty() ||
                 idKelurahan.getText().toString().isEmpty() ||
                 idKecamatan.getText().toString().isEmpty() ||
+
                 fotoKTPBase64 == null ||
                 fotoRumahBase64 == null) {
+            Toast.makeText(this, "Harap isi semua field dengan benar", Toast.LENGTH_SHORT).show();
             return false;
         }
         return true;
@@ -359,6 +400,12 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
+    // Metode untuk memulai Maps activity
+    private void openMap() {
+        Intent intent = new Intent(this, Maps.class);
+        startActivityForResult(intent, REQUEST_CODE_MAP);
     }
 
     private LatLng getLocation() {
