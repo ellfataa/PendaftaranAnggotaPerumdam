@@ -27,7 +27,7 @@ import org.json.JSONObject;
 public class IndexPendaftaranLogin extends AppCompatActivity {
 
     private static final String TAG = "IndexPendaftaranLogin";
-    private Button btn_status, btn_registrasi, btn_keluar;
+    private Button btn_login, btn_registrasi, btn_keluar;
     private TextView akun, txtIndexPelanggan;
     private SharedPreferences sharedPreferences;
 
@@ -46,11 +46,21 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         setupGoogleSignIn();
         setupButtonListeners();
         handleRegistrationStatus();
+
+        boolean isRegistered = getIntent().getBooleanExtra("REGISTERED", false);
+        String nik = getIntent().getStringExtra("NIK");
+
+        if (isRegistered) {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean(nik + "_registered", true);
+            editor.apply();
+        }
+
         updateUI();
     }
 
     private void initializeViews() {
-        btn_status = findViewById(R.id.btn_status);
+        btn_login = findViewById(R.id.btn_login);
         btn_registrasi = findViewById(R.id.btn_registrasi);
         btn_keluar = findViewById(R.id.btn_keluar);
         akun = findViewById(R.id.akun);
@@ -67,9 +77,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void setupButtonListeners() {
-        btn_status.setOnClickListener(v -> navigateToStatus());
+        btn_login.setOnClickListener(v -> navigateToLogin());
         btn_registrasi.setOnClickListener(v -> navigateToRegistration());
         btn_keluar.setOnClickListener(v -> signOut());
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
+        startActivity(intent);
     }
 
     private void handleRegistrationStatus() {
@@ -95,45 +110,47 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
 
     private void updateUI() {
         String username = sharedPreferences.getString("username", "");
-        String nik = sharedPreferences.getString("NIK", "");
         GoogleSignInAccount acct = GoogleSignIn.getLastSignedInAccount(this);
 
         if (acct != null) {
-            updateUIForGoogleAccount(acct, nik);
+            updateUIForGoogleAccount(acct);
         } else if (!username.isEmpty()) {
-            updateUIForRegularAccount(username, nik);
+            updateUIForRegularAccount(username);
         } else {
             updateUIForNoLogin();
         }
 
         txtIndexPelanggan.setVisibility(View.VISIBLE);
-        updateStatusButtonListener(nik);
+        updateButtonVisibility();
     }
 
-    private void updateUIForGoogleAccount(GoogleSignInAccount acct, String nik) {
+    private void updateUIForGoogleAccount(GoogleSignInAccount acct) {
         String personName = acct.getDisplayName();
         akun.setText(personName != null ? personName : "Nama tidak tersedia");
-        updateButtonVisibility(true, cekStatusRegistrasi(nik));
+        updateButtonVisibility();
     }
 
-    private void updateUIForRegularAccount(String username, String nik) {
-        getUserAkun(username);
-        updateButtonVisibility(true, cekStatusRegistrasi(nik));
+    private void updateUIForRegularAccount(String username) {
+        akun.setText(username);
+        updateButtonVisibility();
     }
 
     private void updateUIForNoLogin() {
         akun.setText("Akun: Belum Login");
-        updateButtonVisibility(false, false);
+        updateButtonVisibility();
     }
 
-    private void updateStatusButtonListener(final String nik) {
-        btn_status.setOnClickListener(v -> navigateToStatus(nik));
-    }
+    private void updateButtonVisibility() {
+        boolean isLoggedIn = !sharedPreferences.getString("username", "").isEmpty() ||
+                GoogleSignIn.getLastSignedInAccount(this) != null;
 
-    private void updateButtonVisibility(boolean isLoggedIn, boolean hasRegistered) {
         btn_keluar.setVisibility(isLoggedIn ? View.VISIBLE : View.GONE);
-        btn_status.setVisibility(isLoggedIn && hasRegistered ? View.VISIBLE : View.GONE);
-        btn_registrasi.setVisibility(isLoggedIn && !hasRegistered ? View.VISIBLE : View.GONE);
+        btn_login.setVisibility(View.VISIBLE);
+        btn_registrasi.setVisibility(View.VISIBLE);
+
+        Log.d("IndexPendaftaranLogin", "Button visibility updated: login " +
+                (btn_login.getVisibility() == View.VISIBLE ? "visible" : "gone") +
+                ", registrasi " + (btn_registrasi.getVisibility() == View.VISIBLE ? "visible" : "gone"));
     }
 
     private void getUserAkun(String username) {
@@ -185,17 +202,24 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void signOut() {
-        gsc.signOut().addOnCompleteListener(task -> {
+        if (gsc != null) {
+            gsc.signOut().addOnCompleteListener(task -> {
+                clearLoginData();
+                Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
+                navigateToMainActivity();
+            });
+        } else {
             clearLoginData();
             Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
             navigateToMainActivity();
-        });
+        }
     }
 
     private void clearLoginData() {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove("username");
-        editor.apply();
+        SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        SharedPreferences.Editor loginEditor = loginPrefs.edit();
+        loginEditor.clear();
+        loginEditor.apply();
     }
 
     private void navigateToMainActivity() {
@@ -203,17 +227,6 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    private void navigateToStatus() {
-        String nik = sharedPreferences.getString("NIK", "");
-        navigateToStatus(nik);
-    }
-
-    private void navigateToStatus(String nik) {
-        Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
-        intent.putExtra("NIK", nik);
-        startActivity(intent);
     }
 
     private void navigateToRegistration() {

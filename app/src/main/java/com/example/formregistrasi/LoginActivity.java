@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
     EditText etNama, etNik;
-    Button btnLogin;
+    Button btn_status;
     ProgressDialog progressDialog;
 
     /**
@@ -42,10 +42,10 @@ public class LoginActivity extends AppCompatActivity {
 
         etNama = findViewById(R.id.etNama);
         etNik = findViewById(R.id.etNik);
-        btnLogin = findViewById(R.id.btnLogin);
+        btn_status = findViewById(R.id.btn_status);
         progressDialog = new ProgressDialog(LoginActivity.this);
 
-        btnLogin.setOnClickListener(new View.OnClickListener() {
+        btn_status.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String nama = etNama.getText().toString().trim();
@@ -55,6 +55,19 @@ public class LoginActivity extends AppCompatActivity {
                     Toast.makeText(getApplicationContext(), "Nama dan NIK harus diisi", Toast.LENGTH_SHORT).show();
                 } else {
                     checkLogin(nama, nik);
+                }
+            }
+        });
+
+        // Tambahkan listener untuk btn_status
+        btn_status.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String nik = etNik.getText().toString().trim();
+                if (!nik.isEmpty()) {
+                    navigateToStatus(nik);
+                } else {
+                    Toast.makeText(getApplicationContext(), "NIK harus diisi untuk melihat status", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -82,10 +95,7 @@ public class LoginActivity extends AppCompatActivity {
 
                                 if (status.equals("OK")) {
                                     Toast.makeText(getApplicationContext(), "Login berhasil", Toast.LENGTH_SHORT).show();
-                                    Intent intent = new Intent(LoginActivity.this, Status.class);
-                                    intent.putExtra("nama", nama);
-                                    intent.putExtra("nik", nik);
-                                    startActivity(intent);
+                                    navigateToStatus(nik);
                                     finish();
                                 } else {
                                     Toast.makeText(getApplicationContext(), "Login gagal. Periksa nama dan NIK Anda.", Toast.LENGTH_SHORT).show();
@@ -119,6 +129,12 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    private void navigateToStatus(String nik) {
+        Intent intent = new Intent(LoginActivity.this, Status.class);
+        intent.putExtra("NIK", nik);
+        startActivity(intent);
+    }
+
     /**
      * Fungsi untuk memeriksa koneksi jaringan.
      * @return true jika terhubung ke internet, false jika tidak
@@ -135,7 +151,7 @@ public class LoginActivity extends AppCompatActivity {
      * @param view View yang memicu fungsi ini
      */
     public void btnKembali(View view) {
-        Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+        Intent intent = new Intent(LoginActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
     }
 }

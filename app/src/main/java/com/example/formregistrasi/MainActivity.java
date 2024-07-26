@@ -98,11 +98,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkRegistrationStatus(String username, String nik) {
-        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-        boolean isRegistered = registrationPrefs.getBoolean(nik + "_registered", false);
-
         Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
-        intent.putExtra("REGISTERED", isRegistered);
         intent.putExtra("NIK", nik);
         startActivity(intent);
         finish();
@@ -256,4 +252,5 @@ public class MainActivity extends AppCompatActivity {
             checkRegistrationStatus(account.getDisplayName(), nik);
         }
     }
+
 }

@@ -69,21 +69,6 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
 
-    private InputFilter getTextOnlyFilter() {
-        return new InputFilter() {
-            @Override
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start; i < end; i++) {
-                    if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
-                        return "";
-                    }
-                }
-                return null;
-            }
-        };
-    }
-
-    //    nambahin map ah
     private GoogleMap gMap;
 
     @Override
@@ -169,7 +154,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
 
         String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
 
-            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 response -> {
                     Log.d("RegistrasiActivity", "Raw Response: " + response);
                     try {
@@ -195,23 +180,22 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
                         Log.e("RegistrasiActivity", "JSON Parsing Error: " + e.getMessage());
                     }
                 },
-                    error -> {
-                        error.printStackTrace();
-                        String errorMessage = "Error fetching data: ";
-                        if (error.networkResponse != null) {
-                            errorMessage += "Status Code: " + error.networkResponse.statusCode;
-                        } else if (error.getMessage() != null) {
-                            errorMessage += error.getMessage();
-                        } else {
-                            errorMessage += "Unknown error occurred";
-                        }
-                        Log.e("RegistrasiActivity", errorMessage);
-                        Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
-                    });
+                error -> {
+                    error.printStackTrace();
+                    String errorMessage = "Error fetching data: ";
+                    if (error.networkResponse != null) {
+                        errorMessage += "Status Code: " + error.networkResponse.statusCode;
+                    } else if (error.getMessage() != null) {
+                        errorMessage += error.getMessage();
+                    } else {
+                        errorMessage += "Unknown error occurred";
+                    }
+                    Log.e("RegistrasiActivity", errorMessage);
+                    Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
+                });
 
-        // Tambahkan timeout yang lebih lama
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
-                30000, // 30 seconds timeout
+                30000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
@@ -288,7 +272,7 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
                         String message = jsonObject.getString("message");
 
                         if (status.equals("OK")) {
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Registration successful!", Toast.LENGTH_SHORT).show();
                             onRegistrationSuccess();
                         } else {
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
@@ -409,33 +393,26 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
     public void btnKembali(View view) {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
-
-    }
-
-    private void simpanStatusRegistrasi(String nik) {
-        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor editor = registrationPrefs.edit();
-        editor.putBoolean(nik + "_registered", true);
-        editor.apply();
     }
 
     private void onRegistrationSuccess() {
         String nik = etNik.getText().toString();
 
-        SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor loginEditor = loginPrefs.edit();
-        loginEditor.putString("NIK", nik);
-        loginEditor.apply();
-
+        // Save registration status
         SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
         SharedPreferences.Editor registrationEditor = registrationPrefs.edit();
         registrationEditor.putBoolean(nik + "_registered", true);
         registrationEditor.apply();
 
-        Intent intent = new Intent(RegistrasiActivity.this, Status.class);
-        intent.putExtra("NIK", nik);
+        Log.d("RegistrasiActivity", "Registration success for NIK: " + nik);
+
+        // Show success message
+        Toast.makeText(this, "Registration successful!", Toast.LENGTH_LONG).show();
+
+        // Redirect to LoginActivity
+        Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);
         startActivity(intent);
-        finish();
+        finish(); // Close RegistrasiActivity
     }
 
     @Override
@@ -508,5 +485,19 @@ public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyC
     private void updateLocationFields(LatLng location) {
         etLatitude.setText(String.format("%.6f", location.latitude));
         etLongitude.setText(String.format("%.6f", location.longitude));
+    }
+
+    private InputFilter getTextOnlyFilter() {
+        return new InputFilter() {
+            @Override
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                for (int i = start; i < end; i++) {
+                    if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
+                        return "";
+                    }
+                }
+                return null;
+            }
+        };
     }
 }

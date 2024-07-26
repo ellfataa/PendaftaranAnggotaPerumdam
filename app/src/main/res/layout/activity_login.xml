@@ -1,105 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="8dp"
-    android:background="@drawable/bgindex"
+    android:padding="25dp"
+    android:background="@drawable/bgindex3"
     tools:context=".LoginActivity">
 
-    <RelativeLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btnKembali"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="kembali"
-            android:textColor="@color/black"
-            android:background="@color/transparent"
-            android:textStyle="bold"
-            android:textSize="15sp"
-            android:onClick="btnKembali"
-            />
-
-        <ImageView
-            android:id="@+id/logo"
-            android:layout_width="140dp"
-            android:layout_height="56dp"
-            android:layout_alignParentEnd="true"
-            android:src="@drawable/logopdam" />
-    </RelativeLayout>
-
-    <TextView
-        android:id="@+id/txt_login"
-        android:layout_below="@+id/logo"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Login Peserta Pendaftaran Anggota PERUMDA AIR MINUM TIRTA SATRIA"
-        android:textAlignment="center"
-        android:layout_centerInParent="true"
-        android:layout_alignParentTop="true"
-        android:textSize="30sp"
-        android:layout_marginTop="20dp"
-        android:textColor="@color/black"
-        android:textStyle="bold"
-        />
-
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingBottom="50dp"
-        android:layout_marginTop="20dp"
-        android:elevation="10dp">
-
-        <LinearLayout
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:layout_margin="10dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Nama"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/etNama"
-                android:layout_width="match_parent"
-                android:layout_height="62dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="NIK"
-                android:textSize="20sp"
-                android:textColor="@color/black"
-                android:textStyle="bold"
-                android:layout_marginTop="10dp" />
-
-            <EditText
-                android:id="@+id/etNik"
-                android:layout_width="match_parent"
-                android:layout_height="62dp" />
+            android:layout_height="wrap_content">
 
             <Button
-                android:id="@+id/btnLogin"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:text="Login"
+                android:id="@+id/btnKembali"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="kembali"
+                android:textColor="@color/black"
+                android:background="@color/transparent"
                 android:textStyle="bold"
-                android:textSize="16sp"
-                android:backgroundTint="@color/bluesky"
-                android:layout_marginTop="10dp"
-                android:onClick="login"
+                android:textSize="15sp"
+                android:onClick="btnKembali"
                 />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
 
-</LinearLayout>
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_alignParentEnd="true"
+                android:src="@drawable/logopdam" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/txt_login"
+            android:layout_below="@+id/logo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Masuk Pelanggan Perumda Air Minum Tirta Satria"
+            android:textAlignment="center"
+            android:layout_centerInParent="true"
+            android:layout_alignParentTop="true"
+            android:textSize="30sp"
+            android:layout_marginTop="20dp"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nama"
+            android:textSize="20sp"
+            android:layout_marginTop="30dp"
+            android:textColor="@color/black"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etNama"
+            android:layout_width="match_parent"
+            android:layout_height="62dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NIK"
+            android:textSize="20sp"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp" />
+
+        <EditText
+            android:id="@+id/etNik"
+            android:layout_width="match_parent"
+            android:layout_height="62dp" />
+
+        <Button
+            android:id="@+id/btn_status"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Masuk dan Lihat Status"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:backgroundTint="@color/bluesky"
+            android:layout_marginTop="10dp"
+            android:onClick="login"
+            />
+    </LinearLayout>
+
+</ScrollView>

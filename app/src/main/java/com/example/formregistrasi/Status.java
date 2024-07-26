@@ -1,6 +1,7 @@
 package com.example.formregistrasi;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -43,8 +44,6 @@ public class Status extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);
-                intent.putExtra("REGISTERED", true);
-                intent.putExtra("NIK", getIntent().getStringExtra("NIK"));
                 startActivity(intent);
                 finish();
             }
@@ -95,6 +94,18 @@ public class Status extends AppCompatActivity {
                             tvKecamatan.setText("Kecamatan: " + data.optString("kecamatan", "Tidak ada data"));
                             tvLatitude.setText("Latitude: " + data.optString("latitude", "Tidak ada data"));
                             tvLongitude.setText("Longitude: " + data.optString("longitude", "Tidak ada data"));
+
+                            // Simpan NIK kembali ke SharedPreferences
+                            SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = loginPrefs.edit();
+                            editor.putString("NIK", nik);
+                            editor.apply();
+
+                            // Tandai bahwa user telah terdaftar
+                            SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor regEditor = registrationPrefs.edit();
+                            regEditor.putBoolean(nik + "_registered", true);
+                            regEditor.apply();
 
                             Log.d("Status", "Data successfully parsed and displayed");
                         } else {
