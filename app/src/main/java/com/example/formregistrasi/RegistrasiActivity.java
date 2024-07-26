@@ -1,10 +1,8 @@
 package com.example.formregistrasi;
 
-import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.ConnectivityManager;
@@ -24,24 +22,13 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,12 +40,11 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class  RegistrasiActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class RegistrasiActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE_MAP = 1001;
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private EditText etNama, etNik, etAlamat, etRT, etRW, etNoTelp, etKodePos, etJumlahPenghuni, etLatitude, etLongitude;
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
@@ -66,18 +52,13 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
     private String fotoKTPBase64, fotoRumahBase64;
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
 
-    private Marker currentLocationMarker;
-
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
-
-    private GoogleMap gMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         try {
             setContentView(R.layout.activity_registrasi);
-            // Inisialisasi views dan setup lainnya
         } catch (Exception e) {
             Log.e("RegistrasiActivity", "Error in onCreate", e);
             Toast.makeText(this, "Terjadi kesalahan: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -86,9 +67,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         initializeViews();
         setListeners();
         fetchDropdownData();
-
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.idMap);
-        mapFragment.getMapAsync(this);
 
         btnPeta.setOnClickListener(v -> openMap());
     }
@@ -133,6 +111,11 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         startActivityForResult(intent, requestCode);
     }
 
+    private void openMap() {
+        Intent intent = new Intent(this, Maps.class);
+        startActivityForResult(intent, REQUEST_CODE_MAP);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -141,15 +124,8 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
                 String latitude = data.getStringExtra("SELECTED_LATITUDE");
                 String longitude = data.getStringExtra("SELECTED_LONGITUDE");
 
-                // Mengisi field latitude dan longitude di RegistrasiActivity
                 etLatitude.setText(latitude);
                 etLongitude.setText(longitude);
-
-                // Update marker pada peta jika diperlukan
-                if (gMap != null) {
-                    LatLng selectedLocation = new LatLng(Double.parseDouble(latitude), Double.parseDouble(longitude));
-                    updateMapMarker(selectedLocation);
-                }
             } else if (requestCode == REQUEST_IMAGE_KTP) {
                 Uri imageUri = data.getData();
                 processImage(imageUri, true);
@@ -158,19 +134,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
                 processImage(imageUri, false);
             }
         }
-    }
-
-    private void updateMapMarker(LatLng location) {
-        if (currentLocationMarker != null) {
-            currentLocationMarker.setPosition(location);
-        } else {
-            currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                    .position(location)
-                    .title("Lokasi yang Dipilih")
-                    .draggable(true));
-        }
-        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 15));
-        updateLocationFields(location);
     }
 
     private void organizeKelurahanByKecamatan(JSONArray kelurahanArray) throws JSONException {
@@ -353,7 +316,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
     }
 
     private boolean validateFields() {
-        // Add validation for all required fields
         if (etNama.getText().toString().isEmpty() ||
                 etNik.getText().toString().isEmpty() ||
                 etNik.getText().toString().length() != 16 ||
@@ -368,7 +330,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
                 idPekerjaan.getText().toString().isEmpty() ||
                 idKelurahan.getText().toString().isEmpty() ||
                 idKecamatan.getText().toString().isEmpty() ||
-
                 fotoKTPBase64 == null ||
                 fotoRumahBase64 == null) {
             Toast.makeText(this, "Harap isi semua field dengan benar", Toast.LENGTH_SHORT).show();
@@ -402,35 +363,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    // Metode untuk memulai Maps activity
-    private void openMap() {
-        Intent intent = new Intent(this, Maps.class);
-        startActivityForResult(intent, REQUEST_CODE_MAP);
-    }
-
-    private LatLng getLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-            return null;
-        }
-
-        // Fetch location logic here
-        return null;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getLocation();
-            } else {
-                Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
     private boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
@@ -460,78 +392,6 @@ public class  RegistrasiActivity extends AppCompatActivity implements OnMapReady
         Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);
         startActivity(intent);
         finish(); // Close RegistrasiActivity
-    }
-
-    @Override
-    public void onMapReady(@NonNull GoogleMap googleMap) {
-        gMap = googleMap;
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-            return;
-        }
-
-        // Mengaktifkan kontrol zoom dan gestur
-        gMap.getUiSettings().setZoomControlsEnabled(true);
-        gMap.getUiSettings().setZoomGesturesEnabled(true);
-        gMap.getUiSettings().setScrollGesturesEnabled(true);
-        gMap.getUiSettings().setRotateGesturesEnabled(true);
-        gMap.getUiSettings().setTiltGesturesEnabled(true);
-
-        gMap.setMyLocationEnabled(true);
-        gMap.getUiSettings().setMyLocationButtonEnabled(true);
-
-        FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        fusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, location -> {
-                    if (location != null) {
-                        LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-
-                        // Tambahkan marker yang dapat digeser
-                        currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                                .position(currentLocation)
-                                .title("Lokasi yang Dipilih")
-                                .draggable(true));
-
-                        gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
-
-                        updateLocationFields(currentLocation);
-                    }
-                });
-
-        // Listener untuk pergerakan marker
-        gMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
-            @Override
-            public void onMarkerDragStart(Marker marker) {}
-
-            @Override
-            public void onMarkerDrag(Marker marker) {}
-
-            @Override
-            public void onMarkerDragEnd(Marker marker) {
-                LatLng newPosition = marker.getPosition();
-                updateLocationFields(newPosition);
-            }
-        });
-
-        // Listener untuk klik pada peta
-        gMap.setOnMapClickListener(latLng -> {
-            if (currentLocationMarker != null) {
-                currentLocationMarker.setPosition(latLng);
-            } else {
-                currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                        .position(latLng)
-                        .title("Lokasi yang Dipilih")
-                        .draggable(true));
-            }
-            updateLocationFields(latLng);
-        });
-    }
-
-    private void updateLocationFields(LatLng location) {
-        etLatitude.setText(String.format("%.6f", location.latitude));
-        etLongitude.setText(String.format("%.6f", location.longitude));
     }
 
     private InputFilter getTextOnlyFilter() {
