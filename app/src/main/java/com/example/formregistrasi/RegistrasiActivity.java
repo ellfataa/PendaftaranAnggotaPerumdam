@@ -53,7 +53,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegistrasiActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class  RegistrasiActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
