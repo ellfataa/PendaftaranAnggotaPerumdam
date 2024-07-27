@@ -54,6 +54,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
 
+    // Fungsi buat memulai activity/buat inisiasi awal
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,6 +72,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta.setOnClickListener(v -> openMap());
     }
 
+    // Fungsi buat nge-set semua view yang ada di layout
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
@@ -98,6 +100,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta = findViewById(R.id.btnPeta);
     }
 
+    // Fungsi buat ngasih aksi ke tombol-tombol
     private void setListeners() {
         btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
@@ -106,16 +109,19 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta.setOnClickListener(v -> openMap());
     }
 
+    // Fungsi buat milih gambar dari galeri
     private void pickImage(int requestCode) {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, requestCode);
     }
 
+    // Fungsi buat buka halaman Maps buat pilih lokasi
     private void openMap() {
         Intent intent = new Intent(this, Maps.class);
         startActivityForResult(intent, REQUEST_CODE_MAP);
     }
 
+    // Fungsi buat mengatur hasil dari aktivitas lain (milih gambar atau lokasi)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -136,6 +142,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat ngurutin kelurahan berdasarkan kecamatan
     private void organizeKelurahanByKecamatan(JSONArray kelurahanArray) throws JSONException {
         for (int i = 0; i < kelurahanArray.length(); i++) {
             JSONObject kelurahan = kelurahanArray.getJSONObject(i);
@@ -147,6 +154,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat ngambil data buat dropdown dari server
     private void fetchDropdownData() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
@@ -203,6 +211,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
+    // Fungsi buat get isi dropdown kelurahan berdasarkan kecamatan yang dipilih
     private void populateKelurahanDropdown(String idKecamatan) {
         JSONArray kelurahanArray = kelurahanByKecamatan.get(idKecamatan);
         if (kelurahanArray != null) {
@@ -213,6 +222,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat keep isi dropdown dengan data yang udah diambil
     private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
         try {
             Map<String, String> itemMap = new HashMap<>();
@@ -251,14 +261,15 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat ngedaftarin data inputan user ke server database
     private void registerUser() {
         if (!checkNetworkConnection()) {
-            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (!validateFields()) {
-            Toast.makeText(this, "Please fill all required fields", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Harap isi semua data", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -273,7 +284,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                         String message = jsonObject.getString("message");
 
                         if (status.equals("OK")) {
-                            Toast.makeText(getApplicationContext(), "Registration successful!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Registrasi Anda berhasil!", Toast.LENGTH_SHORT).show();
                             onRegistrationSuccess();
                         } else {
                             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
@@ -315,10 +326,11 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
+    // Fungsi buat mengecek apakah semua field udah diisi dengan benar atau belum
     private boolean validateFields() {
         if (etNama.getText().toString().isEmpty() ||
                 etNik.getText().toString().isEmpty() ||
-                etNik.getText().toString().length() != 16 ||
+                etNik.getText().toString().length() != 16 || // Membatasi agar nomor nik diisi sejumlah 16 digit
                 etAlamat.getText().toString().isEmpty() ||
                 etRT.getText().toString().isEmpty() ||
                 etRW.getText().toString().isEmpty() ||
@@ -338,6 +350,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         return true;
     }
 
+    // Fungsi buat memproses gambar yang dipilih user
     private void processImage(Uri imageUri, boolean isKTP) {
         try {
             InputStream imageStream = getContentResolver().openInputStream(imageUri);
@@ -352,10 +365,11 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            Toast.makeText(getApplicationContext(), "Image not found.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Gambar tidak ditemukan.", Toast.LENGTH_SHORT).show();
         }
     }
 
+    // Ubah gambar jadi format base64
     private String encodeImageToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
@@ -363,21 +377,24 @@ public class RegistrasiActivity extends AppCompatActivity {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
+    // Fungsi untuk mengecek koneksi internet
     private boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
 
+    // Aksi tombol kembali ke IndexPendaftaranLogin
     public void btnKembali(View view) {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
     }
 
+    // Fungsi apabila user berhasil registrasi
     private void onRegistrationSuccess() {
         String nik = etNik.getText().toString();
 
-        // Save registration status
+        // Menyimpan status registrasi
         SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
         SharedPreferences.Editor registrationEditor = registrationPrefs.edit();
         registrationEditor.putBoolean(nik + "_registered", true);
@@ -385,15 +402,16 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         Log.d("RegistrasiActivity", "Registration success for NIK: " + nik);
 
-        // Show success message
-        Toast.makeText(this, "Registration successful!", Toast.LENGTH_LONG).show();
+        // Menampilkan pesan berhasil registrasi
+        Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
 
-        // Redirect to LoginActivity
+        // Apabila registrasi berhasil diarahkan ke halaman LoginActivity
         Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);
         startActivity(intent);
-        finish(); // Close RegistrasiActivity
+        finish(); // Menutup RegistrasiActivity
     }
 
+    // Fungsi buat memfilter input hanya bisa teks
     private InputFilter getTextOnlyFilter() {
         return new InputFilter() {
             @Override

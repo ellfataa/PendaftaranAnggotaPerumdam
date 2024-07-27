@@ -38,10 +38,7 @@ public class BuatUser extends AppCompatActivity {
     private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/buatAkun.php";
     private RequestQueue requestQueue;
 
-    /**
-     * Metode ini dipanggil saat aktivitas pertama kali dibuat.
-     * Ini menginisialisasi UI, menyiapkan listener, dan mengatur filter input.
-     */
+    // Metode ini dipanggil saat aktivitas pertama kali dibuat.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,10 +86,7 @@ public class BuatUser extends AppCompatActivity {
         });
     }
 
-    /**
-     * Memvalidasi input pengguna sebelum melakukan pendaftaran.
-     * @return true jika semua input valid, false jika tidak.
-     */
+    // Fungsi buat ngecek apakah input user udah benar atau tidak
     private boolean validateInput() {
         String namaAkun = namaLengkap.getText().toString().trim();
         String userAkun = userName.getText().toString().trim();
@@ -113,10 +107,7 @@ public class BuatUser extends AppCompatActivity {
         return true;
     }
 
-    /**
-     * Melakukan pendaftaran pengguna dengan mengirimkan data ke server.
-     * Menampilkan dialog progress selama proses berlangsung.
-     */
+    // Fungsi buat mengirimkan data buat akun ke server database
     private void registerUser() {
         final String namaAkun = namaLengkap.getText().toString().trim();
         final String userAkun = userName.getText().toString().trim();
@@ -169,12 +160,14 @@ public class BuatUser extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
+    // Fungsi buat balik ke halaman MainActivity
     private void goToMainActivity() {
         Intent intent = new Intent(BuatUser.this, MainActivity.class);
         startActivity(intent);
         finish();
     }
 
+    // Fungsi yang dipanggil pas activity mau didestroy
     @Override
     protected void onDestroy() {
         super.onDestroy();

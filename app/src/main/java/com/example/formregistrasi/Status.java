@@ -25,6 +25,7 @@ public class Status extends AppCompatActivity {
     private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude;
     private Button btnKembali;
 
+    // Fungsi buat ngejalanin aplikasi pas pertama kali dibuka (inisiasi awal)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +51,7 @@ public class Status extends AppCompatActivity {
         });
     }
 
+    // Fungsi buat mendapatkan id semua view yang digunakan
     private void initializeViews() {
         tvStatus = findViewById(R.id.tvStatus);
         tvNama = findViewById(R.id.tvNama);
@@ -68,6 +70,7 @@ public class Status extends AppCompatActivity {
         btnKembali = findViewById(R.id.btnKembali);
     }
 
+    // Fungsi buat ngambil data status dari server menggunakan NIK
     private void fetchStatusData(String nik) {
         String url = "http://192.168.230.122/pendaftaranPerumdam/status.php?nik=" + nik;
         Log.d("Status", "Fetching data from URL: " + url);
@@ -101,7 +104,7 @@ public class Status extends AppCompatActivity {
                             editor.putString("NIK", nik);
                             editor.apply();
 
-                            // Tandai bahwa user telah terdaftar
+                            // Menandai bahwa user telah terdaftar
                             SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
                             SharedPreferences.Editor regEditor = registrationPrefs.edit();
                             regEditor.putBoolean(nik + "_registered", true);
@@ -125,9 +128,9 @@ public class Status extends AppCompatActivity {
                     Toast.makeText(Status.this, "Error fetching data: " + error.getMessage(), Toast.LENGTH_LONG).show();
                 });
 
-        // Tambahkan timeout yang lebih lama
+        // Timeout
         jsonObjectRequest.setRetryPolicy(new com.android.volley.DefaultRetryPolicy(
-                30000, // 30 seconds timeout
+                30000, // 30 detik
                 com.android.volley.DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 com.android.volley.DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         ));

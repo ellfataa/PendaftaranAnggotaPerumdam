@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
 
+    // Fungsi ini buat nge-set tampilan awal dan inisialisasi komponen-komponen penting
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Fungsi agar tombol btn_masuk ketika diklik, maka diarahkan ke login
         btn_masuk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -89,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
             handleSignInResult(account);
         }
 
+        // Fungsi agar ImageView google_btn ketika diklik, maka diarahkan ke login Google
         google_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -97,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    // Fungsi ini buat ngecek status pendaftaran user dan ngarahin ke halaman yang sesuai
     private void checkRegistrationStatus(String username, String nik) {
         Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
         intent.putExtra("NIK", nik);
@@ -104,6 +108,8 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
+
+    // Fungsi ini buat memastikan apakah input dari user sudah benar atau belum
     private boolean isInputValid() {
         String userAkun = et_userAkun.getText().toString().trim();
         String passwordAkun = et_passwordAkun.getText().toString().trim();
@@ -115,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    // Fungsi ini buat ngejalanin proses login ke server database
     private void login() {
         final String userAkun = et_userAkun.getText().toString().trim();
         final String passwordAkun = et_passwordAkun.getText().toString().trim();
@@ -186,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        // Tambahkan timeout yang lebih lama
+        // Keterangan timeout
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
                 30000, // 30 detik timeout
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
@@ -196,11 +203,13 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
+    // Fungsi ini buat mulai proses sign in menggunakan Google
     void signIn(){
         Intent signInIntent = gsc.getSignInIntent();
         startActivityForResult(signInIntent, 1000);
     }
 
+    // Fungsi ini buat menangkap hasil dari proses sign in Google
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -216,12 +225,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi ini buat dapetin NIK dari server pake email
     private String getNikFromServer(String email) {
-        // Implementasi untuk mendapatkan NIK dari server berdasarkan email
-        // Untuk sementara, kita bisa menggunakan nilai default atau placeholder
         return "DEFAULT_NIK";
     }
 
+    // Fungsi ini buat ngehandle atau mengkeep hasil sign in Google yang berhasil
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
             String personName = account.getDisplayName();
@@ -245,6 +254,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi ini buat pindah ke activity berikutnya apabila sudah login Google
     void navigateToSecondActivity(){
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account != null) {

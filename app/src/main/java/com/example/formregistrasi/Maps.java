@@ -30,6 +30,7 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
     private FusedLocationProviderClient fusedLocationClient;
     private Button btnPilihLokasi;
 
+    // Fungsi buat ngejalanin aplikasi pas pertama kali dibuka (inisiasi awal)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,12 +46,14 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
         btnPilihLokasi.setOnClickListener(v -> onLocationSelected());
     }
 
+    // Fungsi yang dipanggil pas peta udah siap ditampilin
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         gMap = googleMap;
         setupMap();
     }
 
+    // Fungsi buat ngatur-ngatur peta sesuai kebutuhan user
     private void setupMap() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -94,6 +97,7 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
         });
     }
 
+    // Fungsi buat mendapatkan lokasi user sekarang melalui gps
     private void getCurrentLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -112,6 +116,7 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
                 });
     }
 
+    // Fungsi yang dipanggil abis user ngasih jawaban soal izin lokasi
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -124,6 +129,7 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
         }
     }
 
+    // Fungsi yang dipanggil ketika user udah milih lokasi dan pencet tombol
     private void onLocationSelected() {
         if (currentLocationMarker != null) {
             LatLng selectedLocation = currentLocationMarker.getPosition();

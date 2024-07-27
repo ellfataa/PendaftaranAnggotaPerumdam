@@ -31,10 +31,7 @@ public class LoginActivity extends AppCompatActivity {
     Button btn_status;
     ProgressDialog progressDialog;
 
-    /**
-     * Fungsi ini dipanggil saat activity dibuat.
-     * Menginisialisasi tampilan dan menetapkan listener untuk tombol login.
-     */
+    // Fungsi buat activity pertama kali dibuat (inisiasi awal)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -73,12 +70,7 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Fungsi untuk melakukan proses login.
-     * Mengirim permintaan ke server dan menangani respons.
-     * @param nama Nama pengguna
-     * @param nik Nomor Induk Kependudukan pengguna
-     */
+    // Fungsi buat ngecek login ke server
     public void checkLogin(final String nama, final String nik) {
         if (checkNetworkConnection()) {
             progressDialog.setMessage("Sedang login...");
@@ -129,27 +121,21 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat pindah ke halaman status apabila login berhasil
     private void navigateToStatus(String nik) {
         Intent intent = new Intent(LoginActivity.this, Status.class);
         intent.putExtra("NIK", nik);
         startActivity(intent);
     }
 
-    /**
-     * Fungsi untuk memeriksa koneksi jaringan.
-     * @return true jika terhubung ke internet, false jika tidak
-     */
+    // Fungsi buat memeriksa koneksi internet
     public boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return (networkInfo != null && networkInfo.isConnected());
     }
 
-    /**
-     * Fungsi untuk kembali ke activity sebelumnya.
-     * Dipanggil saat tombol kembali ditekan.
-     * @param view View yang memicu fungsi ini
-     */
+    // Fungsi buat balik ke halaman IndexPendaftaranLogin
     public void btnKembali(View view) {
         Intent intent = new Intent(LoginActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);

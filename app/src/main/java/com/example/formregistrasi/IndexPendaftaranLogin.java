@@ -36,6 +36,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
 
+    // Fungsi ini dipanggil pas activity pertama kali dibuat (inisiasi)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,6 +60,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         updateUI();
     }
 
+    // Fungsi buat menyiapkan semua view yang ada di layout (untuk get id)
     private void initializeViews() {
         btn_login = findViewById(R.id.btn_login);
         btn_registrasi = findViewById(R.id.btn_registrasi);
@@ -67,26 +69,31 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         txtIndexPelanggan = findViewById(R.id.txtIndexPelanggan);
     }
 
+    // Fungsi buat menyiapkan shared preferences
     private void setupSharedPreferences() {
         sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
     }
 
+    // Fungsi buat menyiapkan Google Sign In/mendapatkan informasi akun apabila user login dari Google
     private void setupGoogleSignIn() {
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
         gsc = GoogleSignIn.getClient(this, gso);
     }
 
+    // Fungsi buat memberikan aksi ke tombol-tombol
     private void setupButtonListeners() {
         btn_login.setOnClickListener(v -> navigateToLogin());
         btn_registrasi.setOnClickListener(v -> navigateToRegistration());
         btn_keluar.setOnClickListener(v -> signOut());
     }
 
+    // Fungsi buat pindah ke halaman loginActivity
     private void navigateToLogin() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
         startActivity(intent);
     }
 
+    // Fungsi buat ngurus status registrasiActivity
     private void handleRegistrationStatus() {
         boolean registeredFromStatus = getIntent().getBooleanExtra("REGISTERED", false);
         if (registeredFromStatus) {
@@ -95,6 +102,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat update shared preferences
     private void updateSharedPreferences(String nik) {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putBoolean("hasRegistered", true);
@@ -102,12 +110,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         editor.apply();
     }
 
+    // Fungsi yang dipanggil pas activity balik lagi ke halaman ini, sehingga informasi user yang dari awal tidak hilang/destroy
     @Override
     protected void onResume() {
         super.onResume();
         updateUI();
     }
 
+    // Fungsi buat update tampilan UI
     private void updateUI() {
         String username = sharedPreferences.getString("username", "");
         GoogleSignInAccount acct = GoogleSignIn.getLastSignedInAccount(this);
@@ -124,22 +134,26 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         updateButtonVisibility();
     }
 
+    // Fungsi buat update UI apabila menggunakan akun Google
     private void updateUIForGoogleAccount(GoogleSignInAccount acct) {
         String personName = acct.getDisplayName();
         akun.setText(personName != null ? personName : "Nama tidak tersedia");
         updateButtonVisibility();
     }
 
+    // Fungsi buat update UI apabila menggunakan akun biasa
     private void updateUIForRegularAccount(String username) {
         akun.setText(username);
         updateButtonVisibility();
     }
 
+    // Fungsi buat update UI apabila tidak login
     private void updateUIForNoLogin() {
         akun.setText("Akun: Belum Login");
         updateButtonVisibility();
     }
 
+    // Fungsi buat ngatur tombol mana yang keliatan
     private void updateButtonVisibility() {
         boolean isLoggedIn = !sharedPreferences.getString("username", "").isEmpty() ||
                 GoogleSignIn.getLastSignedInAccount(this) != null;
@@ -153,6 +167,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
                 ", registrasi " + (btn_registrasi.getVisibility() == View.VISIBLE ? "visible" : "gone"));
     }
 
+    // Fungsi buat ngambil data akun user dari server
     private void getUserAkun(String username) {
         String url = REGISTER_URL + "?username=" + username;
 
@@ -164,6 +179,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         requestQueue.add(jsonObjectRequest);
     }
 
+    // Fungsi buat menangani respon dari server pas ngambil data akun
     private void handleUserAkunResponse(JSONObject response) {
         Log.d(TAG, "Server Response: " + response.toString());
         try {
@@ -181,12 +197,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat menangani error ketika ngambil data akun (versi String)
     private void handleUserAkunError(String errorMessage) {
         Log.e(TAG, "Error: " + errorMessage);
         Toast.makeText(this, "Gagal mengambil data akun: " + errorMessage, Toast.LENGTH_SHORT).show();
         akun.setText("Akun: Gagal mengambil data");
     }
 
+    // Fungsi buat menangani error ketika ngambil data akun (versi VolleyError)
     private void handleUserAkunError(VolleyError error) {
         Log.e(TAG, "Volley Error: " + error.getMessage());
         if (error.networkResponse != null) {
@@ -196,11 +214,13 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         akun.setText("Akun: Error koneksi");
     }
 
+    // Fungsi buat ngecek apa user udah pernah daftar apa belom
     private boolean cekStatusRegistrasi(String nik) {
         SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
         return registrationPrefs.getBoolean(nik + "_registered", false);
     }
 
+    // Fungsi buat sign out dari akun
     private void signOut() {
         if (gsc != null) {
             gsc.signOut().addOnCompleteListener(task -> {
@@ -215,6 +235,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Fungsi buat ngehapus data login dari shared preferences. tujuannya apabila user sign out maka harus login kembali
     private void clearLoginData() {
         SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
         SharedPreferences.Editor loginEditor = loginPrefs.edit();
@@ -222,6 +243,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         loginEditor.apply();
     }
 
+    // Fungsi buat balik ke halaman MainActivity
     private void navigateToMainActivity() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -229,6 +251,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         finish();
     }
 
+    // Fungsi buat pindah ke halaman registrasiActivity
     private void navigateToRegistration() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, RegistrasiActivity.class);
         startActivity(intent);
