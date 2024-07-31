@@ -1,5 +1,7 @@
 package com.example.formregistrasi;
 
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -11,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.DefaultRetryPolicy;
@@ -40,14 +43,15 @@ public class MainActivity extends AppCompatActivity {
     private ImageView logo, google_btn;
     private TextView txt_masuk, daftarText;
     private Button btn_masuk;
-    private EditText et_userAkun, et_passwordAkun;
+    private EditText et_emailAkun, et_passwordAkun;
 
-    private static final String URL_LOGIN = "http://192.168.230.122/pendaftaranPerumdam/masukAkun.php";
+    private static final String URL_LOGIN = "http://192.168.230.84/registrasi-pelanggan/public/api/";
 
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
 
-    // Fungsi ini buat nge-set tampilan awal dan inisialisasi komponen-komponen penting
+    private ProgressDialog progressDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,9 +61,13 @@ public class MainActivity extends AppCompatActivity {
         txt_masuk = findViewById(R.id.txt_masuk);
         btn_masuk = findViewById(R.id.btn_masuk);
         daftarText = findViewById(R.id.daftarText);
-        et_userAkun = findViewById(R.id.userName);
+        et_emailAkun = findViewById(R.id.emailAkun);
         et_passwordAkun = findViewById(R.id.password);
         google_btn = findViewById(R.id.google_btn);
+
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Sedang masuk...");
+        progressDialog.setCancelable(false);
 
         daftarText.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -69,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Fungsi agar tombol btn_masuk ketika diklik, maka diarahkan ke login
         btn_masuk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -91,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
             handleSignInResult(account);
         }
 
-        // Fungsi agar ImageView google_btn ketika diklik, maka diarahkan ke login Google
         google_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -100,65 +106,54 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // Fungsi ini buat ngecek status pendaftaran user dan ngarahin ke halaman yang sesuai
-    private void checkRegistrationStatus(String username, String nik) {
+    private void checkRegistrationStatus(String email, String nik) {
         Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
         intent.putExtra("NIK", nik);
         startActivity(intent);
         finish();
     }
 
-
-    // Fungsi ini buat memastikan apakah input dari user sudah benar atau belum
     private boolean isInputValid() {
-        String userAkun = et_userAkun.getText().toString().trim();
+        String emailAkun = et_emailAkun.getText().toString().trim();
         String passwordAkun = et_passwordAkun.getText().toString().trim();
 
-        if (userAkun.isEmpty() || passwordAkun.isEmpty()) {
+        if (emailAkun.isEmpty() || passwordAkun.isEmpty()) {
             Toast.makeText(this, "Mohon melengkapi semua data", Toast.LENGTH_SHORT).show();
             return false;
         }
         return true;
     }
 
-    // Fungsi ini buat ngejalanin proses login ke server database
     private void login() {
-        final String userAkun = et_userAkun.getText().toString().trim();
+        final String emailAkun = et_emailAkun.getText().toString().trim();
         final String passwordAkun = et_passwordAkun.getText().toString().trim();
+
+        progressDialog.show();
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, URL_LOGIN,
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
+                        progressDialog.dismiss();
                         Log.d(TAG, "Server Response: " + response);
                         try {
                             JSONObject jsonObject = new JSONObject(response);
                             String status = jsonObject.optString("status", "");
 
                             if(status.equals("success")){
-                                String username = jsonObject.optString("username", "");
+                                String email = jsonObject.optString("email", "");
                                 String nik = jsonObject.optString("nik", "");
 
-                                // Periksa apakah username atau NIK kosong
-                                if (username.isEmpty() && nik.isEmpty()) {
+                                if (email.isEmpty() && nik.isEmpty()) {
                                     Toast.makeText(MainActivity.this, "Data tidak lengkap dari server", Toast.LENGTH_SHORT).show();
-                                    Log.e(TAG, "Incomplete data from server: username and NIK are missing");
+                                    Log.e(TAG, "Incomplete data from server: email and NIK are missing");
                                     return;
                                 }
 
-                                // Jika salah satu kosong, gunakan yang lain
-                                if (username.isEmpty()) username = userAkun;
+                                if (email.isEmpty()) email = emailAkun;
                                 if (nik.isEmpty()) nik = "DEFAULT_NIK";
 
-                                Toast.makeText(MainActivity.this, "Login berhasil", Toast.LENGTH_SHORT).show();
-
-                                SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-                                SharedPreferences.Editor editor = sharedPreferences.edit();
-                                editor.putString("username", username);
-                                editor.putString("NIK", nik);
-                                editor.apply();
-
-                                checkRegistrationStatus(username, nik);
+                                showSuccessDialog(email, nik);
                             } else {
                                 String message = jsonObject.optString("message", "Terjadi kesalahan yang tidak diketahui");
                                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -175,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        progressDialog.dismiss();
                         Log.e(TAG, "Volley Error: " + error.toString());
                         NetworkResponse networkResponse = error.networkResponse;
                         if (networkResponse != null && networkResponse.data != null) {
@@ -187,15 +183,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
-                params.put("userAkun", userAkun);
+                params.put("emailAkun", emailAkun);
                 params.put("passwordAkun", passwordAkun);
                 return params;
             }
         };
 
-        // Keterangan timeout
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
-                30000, // 30 detik timeout
+                30000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
@@ -203,13 +198,31 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
-    // Fungsi ini buat mulai proses sign in menggunakan Google
+    private void showSuccessDialog(final String email, final String nik) {
+        new AlertDialog.Builder(this)
+                .setTitle("Login Berhasil")
+                .setMessage("Anda telah berhasil masuk!")
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putString("email", email);
+                        editor.putString("NIK", nik);
+                        editor.apply();
+
+                        checkRegistrationStatus(email, nik);
+                    }
+                })
+                .setCancelable(false)
+                .show();
+    }
+
     void signIn(){
         Intent signInIntent = gsc.getSignInIntent();
         startActivityForResult(signInIntent, 1000);
     }
 
-    // Fungsi ini buat menangkap hasil dari proses sign in Google
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -225,12 +238,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi ini buat dapetin NIK dari server pake email
     private String getNikFromServer(String email) {
         return "DEFAULT_NIK";
     }
 
-    // Fungsi ini buat ngehandle atau mengkeep hasil sign in Google yang berhasil
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
             String personName = account.getDisplayName();
@@ -241,26 +252,15 @@ public class MainActivity extends AppCompatActivity {
 
             String nik = getNikFromServer(personEmail);
 
-            SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("username", personName);
-            editor.putString("email", personEmail);
-            editor.putString("NIK", nik);
-            editor.apply();
-
-            Toast.makeText(this, "Berhasil masuk sebagai: " + personName, Toast.LENGTH_SHORT).show();
-
-            checkRegistrationStatus(personName, nik);
+            showSuccessDialog(personEmail, nik);
         }
     }
 
-    // Fungsi ini buat pindah ke activity berikutnya apabila sudah login Google
     void navigateToSecondActivity(){
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
         if (account != null) {
             String nik = getNikFromServer(account.getEmail());
-            checkRegistrationStatus(account.getDisplayName(), nik);
+            checkRegistrationStatus(account.getEmail(), nik);
         }
     }
-
 }

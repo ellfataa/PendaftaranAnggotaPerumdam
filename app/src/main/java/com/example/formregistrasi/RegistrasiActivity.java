@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
+import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -37,11 +38,14 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RegistrasiActivity extends AppCompatActivity {
 
+    private static final String BASE_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/";
     private static final int REQUEST_CODE_MAP = 1001;
     private static final int REQUEST_IMAGE_KTP = 1;
     private static final int REQUEST_IMAGE_RUMAH = 2;
@@ -142,43 +146,117 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi buat ngurutin kelurahan berdasarkan kecamatan
-    private void organizeKelurahanByKecamatan(JSONArray kelurahanArray) throws JSONException {
-        for (int i = 0; i < kelurahanArray.length(); i++) {
-            JSONObject kelurahan = kelurahanArray.getJSONObject(i);
-            String idKecamatan = kelurahan.getString("id_kecamatan");
-            if (!kelurahanByKecamatan.containsKey(idKecamatan)) {
-                kelurahanByKecamatan.put(idKecamatan, new JSONArray());
-            }
-            kelurahanByKecamatan.get(idKecamatan).put(kelurahan);
-        }
-    }
-
     // Fungsi buat ngambil data buat dropdown dari server
     private void fetchDropdownData() {
         if (!checkNetworkConnection()) {
-            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+        fetchKecamatan();
+        fetchPekerjaan();
+    }
+
+    private void fetchKecamatan() {
+        String url = BASE_URL + "getKecamatan";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                response -> {
+                    Log.d("RegistrasiActivity", "Kecamatan Raw Response: " + response);
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        Log.d("RegistrasiActivity", "Kecamatan Parsed JSON: " + jsonObject.toString());
+
+                        if (jsonObject.has("success") && jsonObject.getBoolean("success")) {
+                            JSONArray dataArray = jsonObject.optJSONArray("data");
+                            if (dataArray != null) {
+                                // Process the data array as needed
+                                List<String> kecamatanList = new ArrayList<>();
+                                for (int i = 0; i < dataArray.length(); i++) {
+                                    JSONObject kecamatan = dataArray.getJSONObject(i);
+                                    kecamatanList.add(kecamatan.getString("nama_kecamatan"));
+                                }
+                                // Do something with the list of kecamatan names
+                            } else {
+                                Log.e("RegistrasiActivity", "Kecamatan data array is null");
+                            }
+                        } else {
+                            Log.e("RegistrasiActivity", "Kecamatan success is false or missing");
+                        }
+                    } catch (JSONException e) {
+                        Log.e("RegistrasiActivity", "JSON parsing error: " + e.getMessage());
+                    }
+                },
+                error -> {
+                    Log.e("RegistrasiActivity", "Error fetching kecamatan data: " + error.getMessage());
+                });
+
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
+        requestQueue.add(stringRequest);
+    }
+
+    private void fetchKelurahanByKecamatan(String idKecamatan) {
+        String url = BASE_URL + "getKelurahanByKecamatan";
+
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
+                response -> {
+                    Log.d("RegistrasiActivity", "Kelurahan Raw Response: " + response);
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        Log.d("RegistrasiActivity", "Kelurahan Parsed JSON: " + jsonObject.toString());
+
+                        if (jsonObject.has("kelurahan") && jsonObject.getJSONArray("kelurahan").length() > 0) {
+                            JSONArray kelurahanArray = jsonObject.getJSONArray("kelurahan");
+                            populateDropdown(kelurahanArray, idKelurahan, "kelurahan");
+                        } else {
+                            Log.e("RegistrasiActivity", "Kelurahan data array is empty or not found");
+                            Toast.makeText(getApplicationContext(), "Data kelurahan tidak ditemukan", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Log.e("RegistrasiActivity", "JSON Parsing Error for Kelurahan: " + e.getMessage());
+                        Toast.makeText(getApplicationContext(), "Error parsing kelurahan data", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> {
+                    error.printStackTrace();
+                    String errorMessage = "Error fetching Kelurahan data: ";
+                    if (error.networkResponse != null) {
+                        errorMessage += "Status Code: " + error.networkResponse.statusCode;
+                    } else if (error.getMessage() != null) {
+                        errorMessage += error.getMessage();
+                    } else {
+                        errorMessage += "Unknown error occurred";
+                    }
+                    Log.e("RegistrasiActivity", errorMessage);
+                    Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
+                }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("id_kecamatan", idKecamatan);
+                return params;
+            }
+        };
+
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        Volley.newRequestQueue(this).add(stringRequest);
+    }
+
+
+    private void fetchPekerjaan() {
+        String url = "http://192.168.230.84/registrasi-pelanggan/public/api/getPekerjaan";
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                 response -> {
-                    Log.d("RegistrasiActivity", "Raw Response: " + response);
+                    Log.d("RegistrasiActivity", "Pekerjaan Raw Response: " + response);
                     try {
                         JSONObject jsonObject = new JSONObject(response);
-                        Log.d("RegistrasiActivity", "Parsed JSON: " + jsonObject.toString());
-
-                        if (jsonObject.has("kecamatan")) {
-                            JSONArray kecamatanArray = jsonObject.getJSONArray("kecamatan");
-                            populateDropdown(kecamatanArray, idKecamatan, "kecamatan");
-                        }
-
-                        if (jsonObject.has("kelurahan")) {
-                            JSONArray kelurahanArray = jsonObject.getJSONArray("kelurahan");
-                            organizeKelurahanByKecamatan(kelurahanArray);
-                        }
+                        Log.d("RegistrasiActivity", "Pekerjaan Parsed JSON: " + jsonObject.toString());
 
                         if (jsonObject.has("pekerjaan")) {
                             JSONArray pekerjaanArray = jsonObject.getJSONArray("pekerjaan");
@@ -186,12 +264,12 @@ public class RegistrasiActivity extends AppCompatActivity {
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        Log.e("RegistrasiActivity", "JSON Parsing Error: " + e.getMessage());
+                        Log.e("RegistrasiActivity", "JSON Parsing Error for Pekerjaan: " + e.getMessage());
                     }
                 },
                 error -> {
                     error.printStackTrace();
-                    String errorMessage = "Error fetching data: ";
+                    String errorMessage = "Error fetching Pekerjaan data: ";
                     if (error.networkResponse != null) {
                         errorMessage += "Status Code: " + error.networkResponse.statusCode;
                     } else if (error.getMessage() != null) {
@@ -211,18 +289,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Fungsi buat get isi dropdown kelurahan berdasarkan kecamatan yang dipilih
-    private void populateKelurahanDropdown(String idKecamatan) {
-        JSONArray kelurahanArray = kelurahanByKecamatan.get(idKecamatan);
-        if (kelurahanArray != null) {
-            populateDropdown(kelurahanArray, idKelurahan, "kelurahan");
-        } else {
-            idKelurahan.setText("");
-            idKelurahan.setAdapter(null);
-        }
-    }
-
-    // Fungsi buat keep isi dropdown dengan data yang udah diambil
     private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
         try {
             Map<String, String> itemMap = new HashMap<>();
@@ -230,8 +296,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject item = jsonArray.getJSONObject(i);
                 String id = item.getString("id");
-                String nama = item.has("nama") ? item.getString("nama") :
-                        (item.has("nama_" + type) ? item.getString("nama_" + type) : "Unknown");
+                String nama = item.getString("nama_" + type);
                 items[i] = nama;
                 itemMap.put(nama, id);
             }
@@ -245,7 +310,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                     String selectedName = (String) parent.getItemAtPosition(position);
                     String selectedId = itemMap.get(selectedName);
                     Log.d("RegistrasiActivity", type + " selected: " + selectedName + " (ID: " + selectedId + ")");
-                    populateKelurahanDropdown(selectedId);
+                    fetchKelurahanByKecamatan(selectedId);
                 });
             } else {
                 autoCompleteTextView.setOnItemClickListener((parent, view, position, id) -> {
@@ -273,7 +338,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
-        String url = "http://192.168.230.122/pendaftaranPerumdam/registrasi.php";
+        String url = BASE_URL + "register";
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 response -> {
@@ -404,6 +469,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         // Menampilkan pesan berhasil registrasi
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
+        setResult(RESULT_OK);
 
         // Apabila registrasi berhasil diarahkan ke halaman LoginActivity
         Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);

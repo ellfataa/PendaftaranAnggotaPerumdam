@@ -4,20 +4,25 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputFilter;
-import android.text.Spanned;
+import android.util.Log;
 import android.util.Patterns;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkError;
+import com.android.volley.NoConnectionError;
+import com.android.volley.ParseError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
+import com.android.volley.ServerError;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
@@ -30,70 +35,63 @@ import java.util.Map;
 
 public class BuatUser extends AppCompatActivity {
 
-    private ImageView logo;
-    private TextView txt_buat, masukText;
-    private EditText namaLengkap, userName, emailAkun, password;
-    private Button btn_buat;
+    private static final String TAG = "BuatUser";
+    private static final String REGISTER_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/register-user";
 
-    private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/buatAkun.php";
+    private EditText namaLengkap, emailAkun, password, konfirmasiPassword;
     private RequestQueue requestQueue;
 
-    // Metode ini dipanggil saat aktivitas pertama kali dibuat.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_buat_user);
 
-        requestQueue = Volley.newRequestQueue(this);
+        initializeViews();
+        setListeners();
+    }
 
-        logo = findViewById(R.id.logo);
-        txt_buat = findViewById(R.id.txt_buat);
+    private void initializeViews() {
         namaLengkap = findViewById(R.id.namaLengkap);
-        userName = findViewById(R.id.userName);
         emailAkun = findViewById(R.id.emailAkun);
         password = findViewById(R.id.password);
-        btn_buat = findViewById(R.id.btn_buat);
-        masukText = findViewById(R.id.masukText);
+        konfirmasiPassword = findViewById(R.id.konfirmasiPassword);
+        Button btn_buat = findViewById(R.id.btn_buat);
+        TextView masukText = findViewById(R.id.masukText);
 
-        namaLengkap.setFilters(new InputFilter[] {
-                new InputFilter() {
-                    @Override
-                    public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                        for (int i = start; i < end; i++) {
-                            if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
-                                return "";
-                            }
-                        }
-                        return null;
-                    }
-                }
-        });
+        requestQueue = Volley.newRequestQueue(this);
 
-        masukText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                goToMainActivity();
-            }
-        });
+        namaLengkap.setFilters(new InputFilter[]{getNameInputFilter()});
 
-        btn_buat.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (validateInput()) {
-                    registerUser();
-                }
+        masukText.setOnClickListener(v -> goToMainActivity());
+        btn_buat.setOnClickListener(v -> {
+            if (validateInput()) {
+                registerUser();
             }
         });
     }
 
-    // Fungsi buat ngecek apakah input user udah benar atau tidak
+    private void setListeners() {
+        // Listener sudah dipindahkan ke initializeViews()
+    }
+
+    private InputFilter getNameInputFilter() {
+        return (source, start, end, dest, dstart, dend) -> {
+            for (int i = start; i < end; i++) {
+                if (!Character.isLetter(source.charAt(i)) && !Character.isSpaceChar(source.charAt(i))) {
+                    return "";
+                }
+            }
+            return null;
+        };
+    }
+
     private boolean validateInput() {
         String namaAkun = namaLengkap.getText().toString().trim();
-        String userAkun = userName.getText().toString().trim();
         String email = emailAkun.getText().toString().trim();
         String passwordAkun = password.getText().toString().trim();
+        String konfirmasiPasswordAkun = konfirmasiPassword.getText().toString().trim();
 
-        if (namaAkun.isEmpty() || userAkun.isEmpty() || email.isEmpty() || passwordAkun.isEmpty()) {
+        if (namaAkun.isEmpty() || email.isEmpty() || passwordAkun.isEmpty() || konfirmasiPasswordAkun.isEmpty()) {
             Toast.makeText(this, "Mohon lengkapi semua data", Toast.LENGTH_SHORT).show();
             return false;
         }
@@ -104,70 +102,118 @@ public class BuatUser extends AppCompatActivity {
             return false;
         }
 
+        if (!passwordAkun.equals(konfirmasiPasswordAkun)) {
+            konfirmasiPassword.setError("Password tidak cocok");
+            konfirmasiPassword.requestFocus();
+            return false;
+        }
+
         return true;
     }
 
-    // Fungsi buat mengirimkan data buat akun ke server database
     private void registerUser() {
         final String namaAkun = namaLengkap.getText().toString().trim();
-        final String userAkun = userName.getText().toString().trim();
         final String email = emailAkun.getText().toString().trim();
         final String passwordAkun = password.getText().toString().trim();
+        final String konfirmasiPasswordAkun = konfirmasiPassword.getText().toString().trim();
 
         final ProgressDialog progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Mendaftarkan...");
+        progressDialog.setCancelable(false);
         progressDialog.show();
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        progressDialog.dismiss();
-                        try {
-                            JSONObject jsonObject = new JSONObject(response);
-                            JSONObject serverResponse = jsonObject.getJSONObject("server_response");
-                            String status = serverResponse.getString("status");
-                            if (status.equals("OK")) {
-                                Toast.makeText(BuatUser.this, "Buat akun berhasil", Toast.LENGTH_SHORT).show();
-                                goToMainActivity();
-                            } else {
-                                Toast.makeText(BuatUser.this, "Buat akun gagal", Toast.LENGTH_SHORT).show();
+                response -> {
+                    progressDialog.dismiss();
+                    Log.d(TAG, "Server Response: " + response);
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        boolean success = jsonObject.getBoolean("success");
+                        if (success) {
+                            StringBuilder messageBuilder = new StringBuilder("Registrasi berhasil");
+                            if (jsonObject.has("user")) {
+                                JSONObject userObject = jsonObject.getJSONObject("user");
+                                String name = userObject.optString("name", "");
+                                String userEmail = userObject.optString("email", "");
+                                if (!name.isEmpty()) {
+                                    messageBuilder.append(" untuk ").append(name);
+                                }
+                                if (!userEmail.isEmpty()) {
+                                    messageBuilder.append(" (").append(userEmail).append(")");
+                                }
                             }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            Toast.makeText(BuatUser.this, "Terjadi kesalahan: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            showSuccessDialog(messageBuilder.toString());
+                        } else {
+                            String message = jsonObject.optString("message", "Registrasi gagal");
+                            Toast.makeText(BuatUser.this, message, Toast.LENGTH_SHORT).show();
                         }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Log.e(TAG, "JSON Error: " + e.getMessage() + ", Response: " + response);
+                        Toast.makeText(BuatUser.this, "Terjadi kesalahan saat memproses respons server", Toast.LENGTH_SHORT).show();
                     }
                 },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        progressDialog.dismiss();
-                        Toast.makeText(BuatUser.this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+                error -> {
+                    progressDialog.dismiss();
+                    handleNetworkError(error);
                 }) {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
-                params.put("namaAkun", namaAkun);
-                params.put("userAkun", userAkun);
-                params.put("emailAkun", email);
-                params.put("passwordAkun", passwordAkun);
+                params.put("name", namaAkun);
+                params.put("email", email);
+                params.put("password", passwordAkun);
+                params.put("password_confirmation", konfirmasiPasswordAkun);
                 return params;
             }
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Accept", "application/json");
+                headers.put("Content-Type", "application/x-www-form-urlencoded");
+                return headers;
+            }
         };
+
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         requestQueue.add(stringRequest);
     }
 
-    // Fungsi buat balik ke halaman MainActivity
+    private void handleNetworkError(VolleyError error) {
+        String errorMessage = getErrorMessage(error);
+        Toast.makeText(BuatUser.this, errorMessage, Toast.LENGTH_LONG).show();
+        Log.e(TAG, "Volley Error: " + error.toString());
+    }
+
+    private String getErrorMessage(VolleyError error) {
+        if (error instanceof NetworkError) return "Network error - please check your internet connection";
+        if (error instanceof ServerError) return "Server error - please try again later";
+        if (error instanceof AuthFailureError) return "Authentication failure";
+        if (error instanceof ParseError) return "Parsing error";
+        if (error instanceof NoConnectionError) return "No connection available";
+        if (error instanceof TimeoutError) return "Connection timeout";
+        return "Unknown error occurred";
+    }
+
+    private void showSuccessDialog(String message) {
+        new AlertDialog.Builder(this)
+                .setTitle("Registrasi Berhasil")
+                .setMessage(message)
+                .setPositiveButton("OK", (dialog, which) -> goToMainActivity())
+                .setCancelable(false)
+                .show();
+    }
+
     private void goToMainActivity() {
-        Intent intent = new Intent(BuatUser.this, MainActivity.class);
-        startActivity(intent);
+        startActivity(new Intent(BuatUser.this, MainActivity.class));
         finish();
     }
 
-    // Fungsi yang dipanggil pas activity mau didestroy
     @Override
     protected void onDestroy() {
         super.onDestroy();

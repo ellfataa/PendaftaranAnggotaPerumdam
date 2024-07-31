@@ -58,23 +58,6 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Username"
-            android:textSize="20sp"
-            android:layout_marginTop="10dp"
-            android:textColor="@color/black"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/userName"
-            android:layout_width="match_parent"
-            android:layout_height="62dp"
-            android:hint="Masukkan username..."
-            android:inputType="text"
-            />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:text="Email"
             android:textSize="20sp"
             android:layout_marginTop="10dp"
@@ -103,6 +86,23 @@
             android:layout_width="match_parent"
             android:layout_height="62dp"
             android:hint="Masukkan password..."
+            android:inputType="textPassword"
+            />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Konfirmasi Password"
+            android:textSize="20sp"
+            android:layout_marginTop="10dp"
+            android:textColor="@color/black"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/konfirmasiPassword"
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
+            android:hint="Konfirmasi password..."
             android:inputType="textPassword"
             />
 
