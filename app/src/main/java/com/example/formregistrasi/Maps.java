@@ -3,7 +3,9 @@ package com.example.formregistrasi;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -11,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -30,7 +33,6 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
     private FusedLocationProviderClient fusedLocationClient;
     private Button btnPilihLokasi;
 
-    // Fungsi buat ngejalanin aplikasi pas pertama kali dibuka (inisiasi awal)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,32 +48,51 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
         btnPilihLokasi.setOnClickListener(v -> onLocationSelected());
     }
 
-    // Fungsi yang dipanggil pas peta udah siap ditampilin
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         gMap = googleMap;
         setupMap();
     }
 
-    // Fungsi buat ngatur-ngatur peta sesuai kebutuhan user
+    private boolean isLocationEnabled() {
+        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+    }
+
+    private void showGPSDisabledAlert() {
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(this);
+        dialogBuilder.setMessage("GPS tidak aktif. Apakah Anda ingin mengaktifkannya?")
+                .setCancelable(false)
+                .setPositiveButton("Pengaturan", (dialog, id) -> {
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivityForResult(intent, 1);
+                })
+                .setNegativeButton("Batal", (dialog, id) -> dialog.cancel());
+        AlertDialog alert = dialogBuilder.create();
+        alert.show();
+    }
+
     private void setupMap() {
+        if (!isLocationEnabled()) {
+            showGPSDisabledAlert();
+            return;
+        }
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            gMap.setMyLocationEnabled(true);
-            gMap.getUiSettings().setMyLocationButtonEnabled(true);
-            gMap.getUiSettings().setZoomControlsEnabled(true);
-            gMap.getUiSettings().setZoomGesturesEnabled(true);
-            gMap.getUiSettings().setScrollGesturesEnabled(true);
-            gMap.getUiSettings().setRotateGesturesEnabled(true);
-            gMap.getUiSettings().setTiltGesturesEnabled(true);
-
-            getCurrentLocation();
+            enableMyLocation();
         }
 
+        // Set up map click listener
+        gMap.setOnMapClickListener(latLng -> {
+            updateMarker(latLng);
+        });
+
+        // Set up marker drag listener
         gMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
             @Override
             public void onMarkerDragStart(Marker marker) {}
@@ -81,23 +102,50 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
 
             @Override
             public void onMarkerDragEnd(Marker marker) {
-                currentLocationMarker = marker;
-            }
-        });
-
-        gMap.setOnMapClickListener(latLng -> {
-            if (currentLocationMarker != null) {
-                currentLocationMarker.setPosition(latLng);
-            } else {
-                currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                        .position(latLng)
-                        .title("Lokasi yang Dipilih")
-                        .draggable(true));
+                updateMarker(marker.getPosition());
             }
         });
     }
 
-    // Fungsi buat mendapatkan lokasi user sekarang melalui gps
+    private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        gMap.setMyLocationEnabled(true);
+        gMap.getUiSettings().setMyLocationButtonEnabled(true);
+        gMap.getUiSettings().setZoomControlsEnabled(true);
+        gMap.getUiSettings().setZoomGesturesEnabled(true);
+        gMap.getUiSettings().setScrollGesturesEnabled(true);
+        gMap.getUiSettings().setRotateGesturesEnabled(true);
+        gMap.getUiSettings().setTiltGesturesEnabled(true);
+
+        getCurrentLocation();
+    }
+
+    private void updateMarker(LatLng position) {
+        if (currentLocationMarker != null) {
+            currentLocationMarker.remove();
+        }
+        currentLocationMarker = gMap.addMarker(new MarkerOptions()
+                .position(position)
+                .title("Lokasi yang Dipilih")
+                .draggable(true));
+        gMap.animateCamera(CameraUpdateFactory.newLatLng(position));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 1) {
+            if (isLocationEnabled()) {
+                setupMap();
+            } else {
+                Toast.makeText(this, "GPS masih tidak aktif", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     private void getCurrentLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -107,29 +155,24 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
                 .addOnSuccessListener(this, location -> {
                     if (location != null) {
                         LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                        currentLocationMarker = gMap.addMarker(new MarkerOptions()
-                                .position(currentLocation)
-                                .title("Lokasi yang Dipilih")
-                                .draggable(true));
+                        updateMarker(currentLocation);
                         gMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
                     }
                 });
     }
 
-    // Fungsi yang dipanggil abis user ngasih jawaban soal izin lokasi
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                setupMap();
+                enableMyLocation();
             } else {
-                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Izin lokasi ditolak", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    // Fungsi yang dipanggil ketika user udah milih lokasi dan pencet tombol
     private void onLocationSelected() {
         if (currentLocationMarker != null) {
             LatLng selectedLocation = currentLocationMarker.getPosition();
@@ -140,7 +183,7 @@ public class Maps extends AppCompatActivity implements OnMapReadyCallback {
             resultIntent.putExtra("SELECTED_LATITUDE", latitude);
             resultIntent.putExtra("SELECTED_LONGITUDE", longitude);
             setResult(RESULT_OK, resultIntent);
-            finish(); // Ini akan menutup Maps dan kembali ke activity sebelumnya (RegistrasiActivity)
+            finish();
         } else {
             Toast.makeText(this, "Silakan pilih lokasi pada peta terlebih dahulu", Toast.LENGTH_SHORT).show();
         }
