@@ -61,6 +61,7 @@
             android:layout_alignParentRight="true"
             android:textAlignment="textEnd"
             android:layout_marginTop="30dp"
+            android:layout_marginEnd="10dp"
             android:textColor="@color/red"
             android:textSize="13sp"
             />
@@ -102,7 +103,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <EditText
                             android:id="@+id/etNik"
@@ -120,7 +121,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <ImageView
                             android:id="@+id/fotoKTP"
@@ -141,6 +142,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="5dp"
                             android:text="Upload Foto KTP"
+                            android:backgroundTint="@color/green"
                             app:layout_constraintEnd_toEndOf="@+id/fotoKTP"
                             app:layout_constraintStart_toStartOf="@+id/fotoKTP"
                             app:layout_constraintTop_toTopOf="@+id/fotoKTP" />
@@ -152,7 +154,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <com.google.android.material.textfield.TextInputLayout
                             android:layout_width="match_parent"
@@ -177,7 +179,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <EditText
                             android:id="@+id/etAlamat"
@@ -194,7 +196,7 @@
                         android:textSize="20sp"
                         android:textColor="@color/black"
                         android:textStyle="bold"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="15dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
@@ -219,7 +221,7 @@
                         android:textSize="20sp"
                         android:textColor="@color/black"
                         android:textStyle="bold"
-                        android:layout_marginTop="10dp" />
+                        android:layout_marginTop="15dp" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:layout_width="match_parent"
@@ -240,7 +242,7 @@
                     <GridLayout
                         android:layout_width="match_parent"
                         android:layout_height="124dp"
-                        android:layout_marginTop="10dp"
+                        android:layout_marginTop="15dp"
                         android:alignmentMode="alignMargins"
                         android:columnCount="2"
                         android:columnOrderPreserved="false"
@@ -316,7 +318,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <EditText
                             android:id="@+id/etNoTelp"
@@ -333,7 +335,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <EditText
                             android:id="@+id/etKodePos"
@@ -350,7 +352,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <ImageView
                             android:id="@+id/fotoRumah"
@@ -371,6 +373,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="5dp"
                             android:text="Upload Foto Rumah"
+                            android:backgroundTint="@color/green"
                             app:layout_constraintEnd_toEndOf="@+id/fotoRumah"
                             app:layout_constraintStart_toStartOf="@+id/fotoRumah"
                             app:layout_constraintTop_toTopOf="@+id/fotoRumah" />
@@ -382,7 +385,7 @@
                             android:textSize="20sp"
                             android:textColor="@color/black"
                             android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_marginTop="15dp" />
 
                         <EditText
                             android:id="@+id/etJumlahPenghuni"
@@ -392,6 +395,15 @@
                             android:hint="Masukan jumlah penghuni rumah Anda..."
                             />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lokasi Anda"
+                        android:textSize="20sp"
+                        android:textColor="@color/black"
+                        android:textStyle="bold"
+                        android:layout_marginTop="15dp" />
+
                         <Button
                             android:id="@+id/btnPeta"
                             android:layout_width="match_parent"
@@ -399,41 +411,82 @@
                             android:text="Pilih lokasi pada peta"
                             android:textStyle="bold"
                             android:textSize="16sp"
-                            android:backgroundTint="@color/bluesky"
+                            android:backgroundTint="@color/softorange"
                             android:layout_marginTop="10dp"
                             android:onClick="pilihLokasi" />
 
-                        <TextView
-                            android:layout_width="match_parent"
+                    <GridLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="124dp"
+                        android:alignmentMode="alignMargins"
+                        android:columnCount="2"
+                        android:columnOrderPreserved="false"
+                        android:rowCount="1">
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Latitude"
-                            android:textSize="20sp"
-                            android:textColor="@color/black"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_rowWeight="1"
+                            android:layout_columnWeight="1">
 
-                        <EditText
-                            android:id="@+id/etLatitude"
-                            android:layout_width="match_parent"
-                            android:layout_height="62dp"
-                            android:inputType="none"
-                            android:focusable="false" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="10dp">
 
-                        <TextView
-                            android:layout_width="match_parent"
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="Latitude"
+                                    android:textSize="16sp"
+                                    android:textColor="@color/black"
+                                    android:textStyle="bold"
+                                    android:layout_marginTop="10dp" />
+
+                                <EditText
+                                    android:id="@+id/etLatitude"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="62dp"
+                                    android:inputType="none"
+                                    android:focusable="false"
+                                    android:textSize="14sp"/>
+
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+
+                        <androidx.cardview.widget.CardView
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="Longitude"
-                            android:textSize="20sp"
-                            android:textColor="@color/black"
-                            android:textStyle="bold"
-                            android:layout_marginTop="10dp" />
+                            android:layout_rowWeight="1"
+                            android:layout_columnWeight="1">
 
-                        <EditText
-                            android:id="@+id/etLongtitude"
-                            android:layout_width="match_parent"
-                            android:layout_height="62dp"
-                            android:inputType="none"
-                            android:focusable="false" />
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:padding="10dp">
+
+                                <TextView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:text="Longitude"
+                                    android:textSize="16sp"
+                                    android:textColor="@color/black"
+                                    android:textStyle="bold"
+                                    android:layout_marginTop="10dp" />
+
+                                <EditText
+                                    android:id="@+id/etLongtitude"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="62dp"
+                                    android:inputType="none"
+                                    android:focusable="false"
+                                    android:textSize="14sp" />
+
+                            </LinearLayout>
+                        </androidx.cardview.widget.CardView>
+                    </GridLayout>
 
                         <Button
                             android:id="@+id/btnDaftar"

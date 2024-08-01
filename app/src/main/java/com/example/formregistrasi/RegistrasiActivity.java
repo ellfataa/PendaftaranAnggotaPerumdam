@@ -113,6 +113,9 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         fotoKTP = findViewById(R.id.fotoKTP);
         fotoRumah = findViewById(R.id.fotoRumah);
+        // Menyembunyikan tampilan imageView terlebih dahulu
+        fotoKTP.setVisibility(View.GONE);
+        fotoRumah.setVisibility(View.GONE);
 
         btnKembali = findViewById(R.id.btnKembali);
         btnDaftar = findViewById(R.id.btnDaftar);
@@ -451,7 +454,6 @@ public class RegistrasiActivity extends AppCompatActivity {
                 itemMap.put(nama, id);
             }
 
-            // Sort the list alphabetically
             Collections.sort(itemList, new Comparator<String>() {
                 @Override
                 public int compare(String s1, String s2) {
@@ -524,7 +526,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put("nama", etNama.getText().toString());
-                params.put("nik", etNik.getText().toString());
+                params.put("nomor_ktp", etNik.getText().toString());
                 params.put("alamat", etAlamat.getText().toString());
                 params.put("rt", etRT.getText().toString());
                 params.put("rw", etRW.getText().toString());
@@ -543,7 +545,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 params.put("id_kecamatan", kecamatanMap.get(idKecamatan.getText().toString()));
 
                 params.put("foto_ktp", "data:image/jpeg;base64," + fotoKTPBase64);
-                params.put("foto_rumah", "data:image/jpeg;base64," + fotoRumahBase64);
+                params.put("foto_lokasi", "data:image/jpeg;base64," + fotoRumahBase64);
                 return params;
             }
         };
@@ -584,9 +586,11 @@ public class RegistrasiActivity extends AppCompatActivity {
             if (isKTP) {
                 fotoKTPBase64 = encodedImage;
                 fotoKTP.setImageBitmap(selectedImage);
+                fotoKTP.setVisibility(View.VISIBLE); // Memunculkan ImageView
             } else {
                 fotoRumahBase64 = encodedImage;
                 fotoRumah.setImageBitmap(selectedImage);
+                fotoRumah.setVisibility(View.VISIBLE); // Memunculkan ImageView
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();

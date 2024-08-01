@@ -39,6 +39,7 @@ public class BuatUser extends AppCompatActivity {
     private static final String REGISTER_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/register-user";
 
     private EditText namaLengkap, emailAkun, password, konfirmasiPassword;
+    private Button btn_buat;
     private RequestQueue requestQueue;
 
     @Override
@@ -47,9 +48,9 @@ public class BuatUser extends AppCompatActivity {
         setContentView(R.layout.activity_buat_user);
 
         initializeViews();
-        setListeners();
     }
 
+    // Fungsi buat inisialisasi komponen UI dan set listener
     private void initializeViews() {
         namaLengkap = findViewById(R.id.namaLengkap);
         emailAkun = findViewById(R.id.emailAkun);
@@ -70,10 +71,7 @@ public class BuatUser extends AppCompatActivity {
         });
     }
 
-    private void setListeners() {
-        // Listener sudah dipindahkan ke initializeViews()
-    }
-
+    // Fungsi buat bikin filter input nama (cuma huruf dan spasi)
     private InputFilter getNameInputFilter() {
         return (source, start, end, dest, dstart, dend) -> {
             for (int i = start; i < end; i++) {
@@ -85,6 +83,7 @@ public class BuatUser extends AppCompatActivity {
         };
     }
 
+    // Fungsi buat cek input user udah bener apa belum
     private boolean validateInput() {
         String namaAkun = namaLengkap.getText().toString().trim();
         String email = emailAkun.getText().toString().trim();
@@ -111,6 +110,7 @@ public class BuatUser extends AppCompatActivity {
         return true;
     }
 
+    // Fungsi buat daftarin user ke server
     private void registerUser() {
         final String namaAkun = namaLengkap.getText().toString().trim();
         final String email = emailAkun.getText().toString().trim();
@@ -184,12 +184,14 @@ public class BuatUser extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
+    // Fungsi buat ngehandle error network
     private void handleNetworkError(VolleyError error) {
         String errorMessage = getErrorMessage(error);
         Toast.makeText(BuatUser.this, errorMessage, Toast.LENGTH_LONG).show();
         Log.e(TAG, "Volley Error: " + error.toString());
     }
 
+    // Fungsi buat dapetin pesan error yang sesuai
     private String getErrorMessage(VolleyError error) {
         if (error instanceof NetworkError) return "Network error - please check your internet connection";
         if (error instanceof ServerError) return "Server error - please try again later";
@@ -200,6 +202,7 @@ public class BuatUser extends AppCompatActivity {
         return "Unknown error occurred";
     }
 
+    // Fungsi buat nampilin dialog sukses registrasi
     private void showSuccessDialog(String message) {
         new AlertDialog.Builder(this)
                 .setTitle("Registrasi Berhasil")
@@ -209,6 +212,7 @@ public class BuatUser extends AppCompatActivity {
                 .show();
     }
 
+    // Fungsi buat pindah ke MainActivity
     private void goToMainActivity() {
         startActivity(new Intent(BuatUser.this, MainActivity.class));
         finish();
