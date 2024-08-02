@@ -207,7 +207,13 @@ public class BuatUser extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Registrasi Berhasil")
                 .setMessage(message)
-                .setPositiveButton("OK", (dialog, which) -> goToMainActivity())
+                .setPositiveButton("OK", (dialog, which) -> {
+                    Intent intent = new Intent(BuatUser.this, MainActivity.class);
+                    intent.putExtra("email", emailAkun.getText().toString().trim());
+                    intent.putExtra("password", password.getText().toString().trim());
+                    startActivity(intent);
+                    finish();
+                })
                 .setCancelable(false)
                 .show();
     }

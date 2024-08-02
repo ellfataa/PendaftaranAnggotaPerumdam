@@ -3,36 +3,33 @@ package com.example.formregistrasi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.HashMap;
+import java.util.Map;
 
 public class IndexPendaftaranLogin extends AppCompatActivity {
 
     private static final String TAG = "IndexPendaftaranLogin";
-    private Button btn_login, btn_registrasi, btn_keluar;
-    private TextView akun, txtIndexPelanggan;
+    private Button btn_status, btn_registrasi, btn_keluar;
+    private TextView txtIndexPelanggan, txtUserName;
     private SharedPreferences sharedPreferences;
 
     private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/indexPelangganLogin.php";
+    private static final String LOGOUT_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/logout";
 
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
@@ -50,29 +47,19 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         setupGoogleSignIn();
         setupButtonListeners();
         handleRegistrationStatus();
-
-        boolean isRegistered = getIntent().getBooleanExtra("REGISTERED", false);
-        String nik = getIntent().getStringExtra("NIK");
-
-        if (isRegistered) {
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putBoolean(nik + "_registered", true);
-            editor.apply();
-        }
-
-        updateUI();
+        checkLoginStatus();
     }
 
     private void initializeViews() {
-        btn_login = findViewById(R.id.btn_login);
+        btn_status = findViewById(R.id.btn_status);
         btn_registrasi = findViewById(R.id.btn_registrasi);
-        btn_keluar = findViewById(R.id.btn_keluar);
-        akun = findViewById(R.id.akun);
+        btn_keluar = findViewById(R.id.btnLogout);
         txtIndexPelanggan = findViewById(R.id.txtIndexPelanggan);
+        txtUserName = findViewById(R.id.txtUserName);
     }
 
     private void setupSharedPreferences() {
-        sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
     }
 
     private void setupGoogleSignIn() {
@@ -81,33 +68,9 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void setupButtonListeners() {
-        btn_login.setOnClickListener(v -> checkRegistrationAndLogin());
+        btn_status.setOnClickListener(v -> navigateToLogin());
         btn_registrasi.setOnClickListener(v -> navigateToRegistration());
-        btn_keluar.setOnClickListener(v -> signOut());
-    }
-
-    private void checkRegistrationAndLogin() {
-        SharedPreferences registrationPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        boolean hasRegistered = registrationPrefs.getBoolean(HAS_REGISTERED_KEY, false);
-
-        if (hasRegistered) {
-            navigateToLogin();
-        } else {
-            showRegistrationRequiredDialog();
-        }
-    }
-
-    private void showRegistrationRequiredDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Registrasi Diperlukan")
-                .setMessage("Anda belum melakukan registrasi. Silakan registrasi terlebih dahulu.")
-                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                .show();
-    }
-
-    private void navigateToLogin() {
-        Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
-        startActivity(intent);
+        btn_keluar.setOnClickListener(v -> logout());
     }
 
     private void handleRegistrationStatus() {
@@ -125,124 +88,80 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         editor.apply();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        updateUI();
-    }
+    private void checkLoginStatus() {
+        String name = sharedPreferences.getString("name", "");
+        String token = sharedPreferences.getString("token", "");
 
-    private void updateUI() {
-        String username = sharedPreferences.getString("username", "");
         GoogleSignInAccount acct = GoogleSignIn.getLastSignedInAccount(this);
 
-        if (acct != null) {
-            updateUIForGoogleAccount(acct);
-        } else if (!username.isEmpty()) {
-            updateUIForRegularAccount(username);
+        if (!name.isEmpty() && !token.isEmpty()) {
+            updateUIForLoggedInUser(name);
+        } else if (acct != null) {
+            String googleName = acct.getDisplayName();
+            updateUIForLoggedInUser(googleName != null ? googleName : "Google User");
         } else {
-            updateUIForNoLogin();
+            updateUIForLoggedOutUser();
         }
-
-        txtIndexPelanggan.setVisibility(View.VISIBLE);
-        updateButtonVisibility();
     }
 
-    private void updateUIForGoogleAccount(GoogleSignInAccount acct) {
-        String personName = acct.getDisplayName();
-        akun.setText(personName != null ? personName : "Nama tidak tersedia");
-        updateButtonVisibility();
-    }
-
-    private void updateUIForRegularAccount(String username) {
-        akun.setText(username);
-        updateButtonVisibility();
-    }
-
-    private void updateUIForNoLogin() {
-        akun.setText("Akun: Belum Login");
-        updateButtonVisibility();
-    }
-
-    private void updateButtonVisibility() {
-        boolean isLoggedIn = !sharedPreferences.getString("username", "").isEmpty() ||
-                GoogleSignIn.getLastSignedInAccount(this) != null;
-
-        btn_keluar.setVisibility(isLoggedIn ? View.VISIBLE : View.GONE);
-        btn_login.setVisibility(View.VISIBLE);
+    private void updateUIForLoggedInUser(String name) {
+        txtUserName.setText(name);
+        txtUserName.setVisibility(View.VISIBLE);
+        btn_keluar.setVisibility(View.VISIBLE);
+        btn_status.setVisibility(View.VISIBLE);
         btn_registrasi.setVisibility(View.VISIBLE);
-
-        Log.d("IndexPendaftaranLogin", "Button visibility updated: login " +
-                (btn_login.getVisibility() == View.VISIBLE ? "visible" : "gone") +
-                ", registrasi " + (btn_registrasi.getVisibility() == View.VISIBLE ? "visible" : "gone"));
     }
 
-    private void getUserAkun(String username) {
-        String url = REGISTER_URL + "?username=" + username;
-
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url, null,
-                this::handleUserAkunResponse,
-                this::handleUserAkunError);
-
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(jsonObjectRequest);
+    private void updateUIForLoggedOutUser() {
+        txtUserName.setText("Akun: Belum Login");
+        txtUserName.setVisibility(View.VISIBLE);
+        btn_keluar.setVisibility(View.GONE);
+        btn_status.setVisibility(View.VISIBLE);
+        btn_registrasi.setVisibility(View.VISIBLE);
     }
 
-    private void handleUserAkunResponse(JSONObject response) {
-        Log.d(TAG, "Server Response: " + response.toString());
-        try {
-            String status = response.getString("status");
-            if (status.equals("success")) {
-                String userAkun = response.getString("userAkun");
-                akun.setText(userAkun);
-                Log.d(TAG, "UserAkun set to: " + userAkun);
-            } else {
-                String message = response.getString("message");
-                handleUserAkunError(message);
-            }
-        } catch (JSONException e) {
-            handleUserAkunError(e.getMessage());
-        }
-    }
+    private void logout() {
+        String token = sharedPreferences.getString("token", "");
 
-    private void handleUserAkunError(String errorMessage) {
-        Log.e(TAG, "Error: " + errorMessage);
-        Toast.makeText(this, "Gagal mengambil data akun: " + errorMessage, Toast.LENGTH_SHORT).show();
-        akun.setText("Akun: Gagal mengambil data");
-    }
-
-    private void handleUserAkunError(VolleyError error) {
-        Log.e(TAG, "Volley Error: " + error.getMessage());
-        if (error.networkResponse != null) {
-            Log.e(TAG, "Status Code: " + error.networkResponse.statusCode);
-        }
-        Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-        akun.setText("Akun: Error koneksi");
-    }
-
-    private boolean cekStatusRegistrasi(String nik) {
-        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-        return registrationPrefs.getBoolean(nik + "_registered", false);
-    }
-
-    private void signOut() {
-        if (gsc != null) {
-            gsc.signOut().addOnCompleteListener(task -> {
-                clearLoginData();
-                Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
-                navigateToMainActivity();
-            });
+        if (!token.isEmpty()) {
+            logoutRegular(token);
         } else {
-            clearLoginData();
-            Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
-            navigateToMainActivity();
+            logoutGoogle();
         }
     }
 
-    private void clearLoginData() {
-        SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor loginEditor = loginPrefs.edit();
-        loginEditor.clear();
-        loginEditor.apply();
+    private void logoutRegular(String token) {
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, LOGOUT_URL,
+                response -> {
+                    clearUserInfo();
+                    navigateToMainActivity();
+                    Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
+                },
+                error -> Toast.makeText(IndexPendaftaranLogin.this, "Logout gagal", Toast.LENGTH_SHORT).show()
+        ) {
+            @Override
+            public Map<String, String> getHeaders() {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Authorization", "Bearer " + token);
+                return headers;
+            }
+        };
+
+        Volley.newRequestQueue(this).add(stringRequest);
+    }
+
+    private void logoutGoogle() {
+        gsc.signOut().addOnCompleteListener(this, task -> {
+            clearUserInfo();
+            navigateToMainActivity();
+            Toast.makeText(IndexPendaftaranLogin.this, "Google logout berhasil", Toast.LENGTH_SHORT).show();
+        });
+    }
+
+    private void clearUserInfo() {
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
     }
 
     private void navigateToMainActivity() {
@@ -252,9 +171,27 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         finish();
     }
 
+    private void navigateToLogin() {
+        Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
+        startActivity(intent);
+    }
+
     private void navigateToRegistration() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, RegistrasiActivity.class);
-        startActivityForResult(intent, 1);  // Using startActivityForResult to get the result back
+
+        // Tambahkan nama pengguna ke intent
+        String userName = txtUserName.getText().toString();
+        if (!userName.equals("Akun: Belum Login")) {
+            intent.putExtra("userName", userName);
+        }
+
+        // Tambahkan email pengguna
+        String userEmail = sharedPreferences.getString("email", "");
+        if (!userEmail.isEmpty()) {
+            intent.putExtra("userEmail", userEmail);
+        }
+
+        startActivityForResult(intent, 1);
     }
 
     @Override
@@ -262,12 +199,17 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
-                // User has successfully registered
                 SharedPreferences registrationPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
                 SharedPreferences.Editor editor = registrationPrefs.edit();
                 editor.putBoolean(HAS_REGISTERED_KEY, true);
                 editor.apply();
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkLoginStatus();
     }
 }

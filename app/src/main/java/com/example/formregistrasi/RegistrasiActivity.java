@@ -67,15 +67,15 @@ public class RegistrasiActivity extends AppCompatActivity {
     private Uri photoUriKTP;
     private Uri photoUriRumah;
 
-    private EditText etNama, etNik, etAlamat, etRT, etRW, etNoTelp, etKodePos, etJumlahPenghuni, etLatitude, etLongitude;
+    private EditText etNama, etEmail, etNik, etAlamat, etRT, etRW, etNoTelp, etKodePos, etJumlahPenghuni, etLatitude, etLongitude;
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
     private ImageView fotoKTP, fotoRumah;
     private String fotoKTPBase64, fotoRumahBase64;
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
+    private String userEmail;
 
-    // Fungsi buat mulai activity dan inisialisasi awal
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,6 +90,27 @@ public class RegistrasiActivity extends AppCompatActivity {
         setListeners();
         fetchDropdownData();
 
+        // Get user data from intent
+        String userName = getIntent().getStringExtra("userName");
+        userEmail = getIntent().getStringExtra("userEmail");
+
+        // Set name and email
+        if (userName != null && !userName.isEmpty()) {
+            etNama.setText(userName);
+            // etNama.setEnabled(false);
+        }
+        if (userEmail != null && !userEmail.isEmpty()) {
+            etEmail.setText(userEmail);
+            etEmail.setVisibility(View.GONE); // Hide the email field
+        }
+
+        // Check if user has already registered
+        if (hasUserAlreadyRegistered()) {
+            Toast.makeText(this, "Anda sudah melakukan registrasi sebelumnya.", Toast.LENGTH_LONG).show();
+            finish(); // Close the activity
+            return;
+        }
+
         btnPeta.setOnClickListener(v -> openMap());
     }
 
@@ -97,6 +118,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
+        etEmail = findViewById(R.id.etEmail);
         etNik = findViewById(R.id.etNik);
         etAlamat = findViewById(R.id.etAlamat);
         etRT = findViewById(R.id.etRT);
@@ -171,7 +193,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         startActivityForResult(intent, REQUEST_CODE_MAP);
     }
 
-    // Fungsi buat nampilin dialog pilihan sumber gambar
+    // Fungsi buat nampilin dialog pilihan sumber gambar (BELUM BISA DIGUNAKAN)
     private void showImageSourceDialog(boolean isKTP) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Pilih Sumber Gambar");
@@ -186,7 +208,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // Fungsi buat ngambil gambar pake kamera
+    // Fungsi buat ngambil gambar pake kamera (BELUM BISA DIGUNAKAN)
     private void dispatchTakePictureIntent(boolean isKTP) {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -400,22 +422,26 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     // Fungsi buat ngambil data pekerjaan dari server
     private void fetchPekerjaan() {
-        String url = "http://192.168.230.84/registrasi-pelanggan/public/api/getPekerjaan";
+        String url = BASE_URL + "getPekerjaan";
 
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
                 response -> {
                     Log.d("RegistrasiActivity", "Pekerjaan Raw Response: " + response);
                     try {
                         JSONObject jsonObject = new JSONObject(response);
                         Log.d("RegistrasiActivity", "Pekerjaan Parsed JSON: " + jsonObject.toString());
 
-                        if (jsonObject.has("pekerjaan")) {
-                            JSONArray pekerjaanArray = jsonObject.getJSONArray("pekerjaan");
+                        if (jsonObject.has("data")) {
+                            JSONArray pekerjaanArray = jsonObject.getJSONArray("data");
                             populateDropdown(pekerjaanArray, idPekerjaan, "pekerjaan");
+                        } else {
+                            Log.e("RegistrasiActivity", "Pekerjaan data not found in response");
+                            Toast.makeText(getApplicationContext(), "Data pekerjaan tidak ditemukan", Toast.LENGTH_SHORT).show();
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                         Log.e("RegistrasiActivity", "JSON Parsing Error for Pekerjaan: " + e.getMessage());
+                        Toast.makeText(getApplicationContext(), "Error parsing pekerjaan data", Toast.LENGTH_SHORT).show();
                     }
                 },
                 error -> {
@@ -423,6 +449,13 @@ public class RegistrasiActivity extends AppCompatActivity {
                     String errorMessage = "Error fetching Pekerjaan data: ";
                     if (error.networkResponse != null) {
                         errorMessage += "Status Code: " + error.networkResponse.statusCode;
+                        try {
+                            String responseBody = new String(error.networkResponse.data, "utf-8");
+                            Log.e("RegistrasiActivity", "Error response body: " + responseBody);
+                            errorMessage += "\nResponse: " + responseBody;
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
                     } else if (error.getMessage() != null) {
                         errorMessage += error.getMessage();
                     } else {
@@ -430,7 +463,19 @@ public class RegistrasiActivity extends AppCompatActivity {
                     }
                     Log.e("RegistrasiActivity", errorMessage);
                     Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
-                });
+                }) {
+            @Override
+            protected Map<String, String> getParams() {
+                return new HashMap<>(); // Add any required parameters here
+            }
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Content-Type", "application/x-www-form-urlencoded");
+                return headers;
+            }
+        };
 
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
                 30000,
@@ -488,6 +533,11 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
+    private boolean hasUserAlreadyRegistered() {
+        SharedPreferences prefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
+        return prefs.getBoolean(userEmail + "_registered", false);
+    }
+
     // Fungsi buat ngedaftarin data inputan user ke server database
     private void registerUser() {
         if (!checkNetworkConnection()) {
@@ -526,6 +576,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put("nama", etNama.getText().toString());
+                params.put("email", userEmail); // Use the hidden email
                 params.put("nomor_ktp", etNik.getText().toString());
                 params.put("alamat", etAlamat.getText().toString());
                 params.put("rt", etRT.getText().toString());
@@ -552,6 +603,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         Volley.newRequestQueue(this).add(stringRequest);
     }
+
 
     // Fungsi buat ngecek apakah semua field udah diisi dengan bener atau belum
     private boolean validateFields() {
@@ -621,24 +673,21 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     // Fungsi yang dijalanin kalo user berhasil registrasi
     private void onRegistrationSuccess() {
-        String nik = etNik.getText().toString();
-
-        // Nyimpen status registrasi
+        // Save registration status
         SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
         SharedPreferences.Editor registrationEditor = registrationPrefs.edit();
-        registrationEditor.putBoolean(nik + "_registered", true);
+        registrationEditor.putBoolean(userEmail + "_registered", true);
         registrationEditor.apply();
 
-        Log.d("RegistrasiActivity", "Registration success for NIK: " + nik);
+        Log.d("RegistrasiActivity", "Registration success for email: " + userEmail);
 
-        // Nampilin pesan berhasil registrasi
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
         setResult(RESULT_OK);
 
-        // Kalo registrasi berhasil, diarahin ke halaman LoginActivity
+        // Redirect to LoginActivity or appropriate next screen
         Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);
         startActivity(intent);
-        finish(); // Nutup RegistrasiActivity
+        finish();
     }
 
     // Fungsi buat memfilter input cuma bisa teks doang

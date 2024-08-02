@@ -19,7 +19,7 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:id="@+id/akun"
+                android:id="@+id/txtUserName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Akun: Belum Login"
@@ -30,16 +30,18 @@
                 android:layout_centerInParent="true"
                 android:ellipsize="end"
                 android:maxLines="1"
+                android:visibility="gone"
                 />
 
             <Button
-                android:id="@+id/btn_keluar"
+                android:id="@+id/btnLogout"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Keluar"
                 android:layout_alignParentEnd="true"
                 android:layout_centerInParent="true"
                 android:backgroundTint="@color/softred"
+                android:visibility="gone"
                 />
 
         </RelativeLayout>
@@ -80,7 +82,7 @@
             />
 
         <Button
-            android:id="@+id/btn_login"
+            android:id="@+id/btn_status"
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_marginTop="5dp"

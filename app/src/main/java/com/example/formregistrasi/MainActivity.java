@@ -17,7 +17,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.DefaultRetryPolicy;
-import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -45,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btn_masuk;
     private EditText et_emailAkun, et_passwordAkun;
 
-    private static final String URL_LOGIN = "http://192.168.230.84/registrasi-pelanggan/public/api/";
+    private static final String URL_LOGIN = "http://192.168.230.84/registrasi-pelanggan/public/api/login";
 
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
@@ -64,6 +63,15 @@ public class MainActivity extends AppCompatActivity {
         et_emailAkun = findViewById(R.id.emailAkun);
         et_passwordAkun = findViewById(R.id.password);
         google_btn = findViewById(R.id.google_btn);
+
+        // Cek apakah ada data registrasi dari BuatUser
+        Intent intent = getIntent();
+        if (intent.hasExtra("email") && intent.hasExtra("password")) {
+            String email = intent.getStringExtra("email");
+            String password = intent.getStringExtra("password");
+            et_emailAkun.setText(email);
+            et_passwordAkun.setText(password);
+        }
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Sedang masuk...");
@@ -88,15 +96,8 @@ public class MainActivity extends AppCompatActivity {
 
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
-                .requestId()
-                .requestProfile()
                 .build();
         gsc = GoogleSignIn.getClient(this, gso);
-
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-        if (account != null) {
-            handleSignInResult(account);
-        }
 
         google_btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -104,13 +105,6 @@ public class MainActivity extends AppCompatActivity {
                 signIn();
             }
         });
-    }
-
-    private void checkRegistrationStatus(String email, String nik) {
-        Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
-        intent.putExtra("NIK", nik);
-        startActivity(intent);
-        finish();
     }
 
     private boolean isInputValid() {
@@ -138,31 +132,27 @@ public class MainActivity extends AppCompatActivity {
                         Log.d(TAG, "Server Response: " + response);
                         try {
                             JSONObject jsonObject = new JSONObject(response);
-                            String status = jsonObject.optString("status", "");
 
-                            if(status.equals("success")){
-                                String email = jsonObject.optString("email", "");
-                                String nik = jsonObject.optString("nik", "");
+                            if (jsonObject.has("success") && jsonObject.getBoolean("success")) {
+                                // Login berhasil
+                                JSONObject userObject = jsonObject.getJSONObject("user");
+                                String email = userObject.getString("email");
+                                String name = userObject.getString("name");
+                                String token = jsonObject.getString("token");
 
-                                if (email.isEmpty() && nik.isEmpty()) {
-                                    Toast.makeText(MainActivity.this, "Data tidak lengkap dari server", Toast.LENGTH_SHORT).show();
-                                    Log.e(TAG, "Incomplete data from server: email and NIK are missing");
-                                    return;
-                                }
+                                // Simpan token dan informasi user
+                                saveUserInfo(email, name, token);
 
-                                if (email.isEmpty()) email = emailAkun;
-                                if (nik.isEmpty()) nik = "DEFAULT_NIK";
-
-                                showSuccessDialog(email, nik);
+                                // Tampilkan dialog sukses
+                                showSuccessDialog(name);
                             } else {
-                                String message = jsonObject.optString("message", "Terjadi kesalahan yang tidak diketahui");
+                                // Login gagal
+                                String message = jsonObject.optString("message", "Login gagal. Silakan coba lagi.");
                                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
-                                Log.e(TAG, "Login failed: " + message);
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Log.e(TAG, "JSON Error: " + e.toString());
-                            Log.e(TAG, "Response causing error: " + response);
                             Toast.makeText(MainActivity.this, "Terjadi kesalahan dalam memproses data. Silakan coba lagi.", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -172,46 +162,53 @@ public class MainActivity extends AppCompatActivity {
                     public void onErrorResponse(VolleyError error) {
                         progressDialog.dismiss();
                         Log.e(TAG, "Volley Error: " + error.toString());
-                        NetworkResponse networkResponse = error.networkResponse;
-                        if (networkResponse != null && networkResponse.data != null) {
-                            String jsonError = new String(networkResponse.data);
-                            Log.e(TAG, "Error Response: " + jsonError);
+                        String errorMessage = "Gagal terhubung ke server. ";
+                        if (error.networkResponse != null) {
+                            errorMessage += "Status code: " + error.networkResponse.statusCode;
                         }
-                        Toast.makeText(MainActivity.this, "Gagal terhubung ke server. Silakan coba lagi.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 }) {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
-                params.put("emailAkun", emailAkun);
-                params.put("passwordAkun", passwordAkun);
+                params.put("email", emailAkun);
+                params.put("password", passwordAkun);
                 return params;
             }
         };
 
+        // Tetapkan retry policy
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
                 30000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
+        // Tambahkan request ke antrian
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
     }
 
-    private void showSuccessDialog(final String email, final String nik) {
+    private void saveUserInfo(String email, String name, String token) {
+        SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("email", email);
+        editor.putString("name", name);
+        editor.putString("token", token);
+        editor.apply();
+    }
+
+    private void showSuccessDialog(String name) {
         new AlertDialog.Builder(this)
                 .setTitle("Login Berhasil")
-                .setMessage("Anda telah berhasil masuk!")
+                .setMessage("Selamat datang, " + name + "!")
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        SharedPreferences sharedPreferences = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putString("email", email);
-                        editor.putString("NIK", nik);
-                        editor.apply();
-
-                        checkRegistrationStatus(email, nik);
+                        // Pindah ke halaman berikutnya
+                        Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
+                        startActivity(intent);
+                        finish();
                     }
                 })
                 .setCancelable(false)
@@ -238,29 +235,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private String getNikFromServer(String email) {
-        return "DEFAULT_NIK";
-    }
-
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
-            String personName = account.getDisplayName();
             String personEmail = account.getEmail();
-
-            if (personName == null) personName = "Nama tidak tersedia";
             if (personEmail == null) personEmail = "Email tidak tersedia";
-
-            String nik = getNikFromServer(personEmail);
-
-            showSuccessDialog(personEmail, nik);
-        }
-    }
-
-    void navigateToSecondActivity(){
-        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(this);
-        if (account != null) {
-            String nik = getNikFromServer(account.getEmail());
-            checkRegistrationStatus(account.getEmail(), nik);
+            showSuccessDialog(personEmail);
         }
     }
 }
