@@ -8,6 +8,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.Request;
@@ -28,13 +29,13 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private TextView txtIndexPelanggan, txtUserName;
     private SharedPreferences sharedPreferences;
 
-    private static final String REGISTER_URL = "http://192.168.230.122/pendaftaranPerumdam/indexPelangganLogin.php";
+    private static final String INDEX_URL = "http://192.168.230.122/pendaftaranPerumdam/indexPelangganLogin.php";
     private static final String LOGOUT_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/logout";
 
     GoogleSignInOptions gso;
     GoogleSignInClient gsc;
 
-    private static final String PREFS_NAME = "RegistrationPrefs";
+    private static final String PREFS_NAME = "UserPrefs";
     private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
     @Override
@@ -45,7 +46,26 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         initializeViews();
         setupSharedPreferences();
         setupGoogleSignIn();
+
+        // Ambil status registrasi dari Intent
+        boolean hasRegistered = getIntent().getBooleanExtra("hasRegistered", false);
+
+        // Simpan status registrasi ke SharedPreferences
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(HAS_REGISTERED_KEY, hasRegistered);
+        editor.apply();
+
+        // Atur status tombol berdasarkan status registrasi
+        if (btn_registrasi != null) {
+            btn_registrasi.setEnabled(!hasRegistered);
+        }
+        if (btn_status != null) {
+            btn_status.setEnabled(true);
+        }
+
         setupButtonListeners();
+        checkRegistrationStatus();
         handleRegistrationStatus();
         checkLoginStatus();
     }
@@ -68,9 +88,51 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void setupButtonListeners() {
-        btn_status.setOnClickListener(v -> navigateToLogin());
-        btn_registrasi.setOnClickListener(v -> navigateToRegistration());
+        btn_status.setOnClickListener(v -> checkStatusAccess());
+        btn_registrasi.setOnClickListener(v -> checkRegistrationAccess());
         btn_keluar.setOnClickListener(v -> logout());
+    }
+
+    private void checkStatusAccess() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+
+        if (hasRegistered) {
+            Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
+            startActivity(intent);
+        } else {
+            showAlert("Anda belum melakukan registrasi. Silakan registrasi terlebih dahulu.");
+        }
+    }
+
+    private void checkRegistrationAccess() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+
+        if (hasRegistered) {
+            showAlert("Anda sudah melakukan registrasi sebelumnya.");
+        } else {
+            navigateToRegistration();
+        }
+    }
+
+    private void showAlert(String message) {
+        new AlertDialog.Builder(this)
+                .setTitle("Informasi")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void checkRegistrationStatus() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+        if (btn_registrasi != null) {
+            btn_registrasi.setEnabled(!hasRegistered);
+        }
+        if (btn_status != null) {
+            btn_status.setEnabled(true);
+        }
     }
 
     private void handleRegistrationStatus() {
@@ -96,9 +158,11 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
 
         if (!name.isEmpty() && !token.isEmpty()) {
             updateUIForLoggedInUser(name);
+            checkRegistrationStatus();
         } else if (acct != null) {
             String googleName = acct.getDisplayName();
             updateUIForLoggedInUser(googleName != null ? googleName : "Google User");
+            checkRegistrationStatus();
         } else {
             updateUIForLoggedOutUser();
         }
@@ -171,10 +235,10 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         finish();
     }
 
-    private void navigateToLogin() {
-        Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
-        startActivity(intent);
-    }
+//    private void navigateToLogin() {
+//        Intent intent = new Intent(IndexPendaftaranLogin.this, LoginActivity.class);
+//        startActivity(intent);
+//    }
 
     private void navigateToRegistration() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, RegistrasiActivity.class);
@@ -211,5 +275,18 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         checkLoginStatus();
+        updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+
+        if (btn_registrasi != null) {
+            btn_registrasi.setEnabled(!hasRegistered);
+        }
+        if (btn_status != null) {
+            btn_status.setEnabled(true);
+        }
     }
 }

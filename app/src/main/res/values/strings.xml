@@ -8,4 +8,5 @@
     <string name="hrefdaftarAkun">Belum mempunyai akun? <u>Buat Akun</u></string>
     <string name="hrefmasukAkun">Sudah mempunyai akun? <u>Masuk Akun</u></string>
     <string name="default_web_client_id">19825440033-4omsortapt4a7559rm0l9frphtlnkrqo.apps.googleusercontent.com</string>
+    <string name="choose_image_source">Pilih Sumber Gambar</string>
 </resources>

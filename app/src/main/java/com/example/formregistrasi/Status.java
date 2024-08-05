@@ -3,21 +3,11 @@ package com.example.formregistrasi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-
-import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.Volley;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 public class Status extends AppCompatActivity {
 
@@ -25,7 +15,6 @@ public class Status extends AppCompatActivity {
     private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude;
     private Button btnKembali;
 
-    // Fungsi buat ngejalanin aplikasi pas pertama kali dibuka (inisiasi awal)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,12 +22,17 @@ public class Status extends AppCompatActivity {
 
         initializeViews();
 
-        String nik = getIntent().getStringExtra("NIK");
-        if (nik != null && !nik.isEmpty()) {
-            fetchStatusData(nik);
+        // Get data from intent
+        Intent intent = getIntent();
+        if (intent.hasExtra("nomor_ktp")) {
+            displayData(intent);
         } else {
-            Toast.makeText(this, "NIK tidak ditemukan", Toast.LENGTH_SHORT).show();
-            Log.e("Status", "NIK is null or empty");
+            // If no data in intent, try to get from SharedPreferences
+            SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+            String nik = prefs.getString("nomor_ktp", "");
+            if (!nik.isEmpty()) {
+                displayDataFromPrefs(prefs);
+            }
         }
 
         btnKembali.setOnClickListener(new View.OnClickListener() {
@@ -70,72 +64,55 @@ public class Status extends AppCompatActivity {
         btnKembali = findViewById(R.id.btnKembali);
     }
 
-    // Fungsi buat ngambil data status dari server menggunakan NIK
-    private void fetchStatusData(String nik) {
-        String url = "http://192.168.230.122/pendaftaranPerumdam/status.php?nik=" + nik;
-        Log.d("Status", "Fetching data from URL: " + url);
+    private void displayData(Intent intent) {
+        tvStatus.setText("Status: Data masih tahap review");
+        tvNama.setText("Nama: " + intent.getStringExtra("nama"));
+        tvNik.setText("NIK: " + intent.getStringExtra("nomor_ktp"));
+        tvAlamat.setText("Alamat: " + intent.getStringExtra("alamat"));
+        tvRt.setText("RT: " + intent.getStringExtra("rt"));
+        tvRw.setText("RW: " + intent.getStringExtra("rw"));
+        tvTelp.setText("No. Telp: " + intent.getStringExtra("telp_hp"));
+        tvKodePos.setText("Kode Pos: " + intent.getStringExtra("kode_pos"));
+        tvJumlahPenghuni.setText("Jumlah Penghuni: " + intent.getStringExtra("jumlah_penghuni"));
+        tvPekerjaan.setText("Pekerjaan: " + intent.getStringExtra("pekerjaan"));
+        tvKelurahan.setText("Kelurahan: " + intent.getStringExtra("kelurahan"));
+        tvKecamatan.setText("Kecamatan: " + intent.getStringExtra("kecamatan"));
+        tvLatitude.setText("Latitude: " + intent.getStringExtra("latitude"));
+        tvLongitude.setText("Longitude: " + intent.getStringExtra("longitude"));
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-                Request.Method.GET, url, null,
-                response -> {
-                    Log.d("Status", "Response received: " + response.toString());
-                    try {
-                        if (response.getString("status").equals("success")) {
-                            tvStatus.setText(response.getString("message"));
-                            JSONObject data = response.getJSONObject("data");
+        // Save data to SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("nik", intent.getStringExtra("nomor_ktp"));
+        editor.putString("nama", intent.getStringExtra("nama"));
+        editor.putString("alamat", intent.getStringExtra("alamat"));
+        editor.putString("rt", intent.getStringExtra("rt"));
+        editor.putString("rw", intent.getStringExtra("rw"));
+        editor.putString("telp_hp", intent.getStringExtra("telp_hp"));
+        editor.putString("kode_pos", intent.getStringExtra("kode_pos"));
+        editor.putString("jumlah_penghuni", intent.getStringExtra("jumlah_penghuni"));
+        editor.putString("pekerjaan", intent.getStringExtra("pekerjaan"));
+        editor.putString("kelurahan", intent.getStringExtra("kelurahan"));
+        editor.putString("kecamatan", intent.getStringExtra("kecamatan"));
+        editor.putString("latitude", intent.getStringExtra("latitude"));
+        editor.putString("longitude", intent.getStringExtra("longitude"));
+        editor.apply();
+    }
 
-                            tvNama.setText("Nama: " + data.optString("nama", "Tidak ada data"));
-                            tvNik.setText("NIK: " + data.optString("nik", "Tidak ada data"));
-                            tvAlamat.setText("Alamat: " + data.optString("alamat", "Tidak ada data"));
-                            tvRt.setText("RT: " + data.optString("rt", "Tidak ada data"));
-                            tvRw.setText("RW: " + data.optString("rw", "Tidak ada data"));
-                            tvTelp.setText("No. Telp: " + data.optString("telp_hp", "Tidak ada data"));
-                            tvKodePos.setText("Kode Pos: " + data.optString("kode_pos", "Tidak ada data"));
-                            tvJumlahPenghuni.setText("Jumlah Penghuni: " + data.optString("jumlah_penghuni", "Tidak ada data"));
-                            tvPekerjaan.setText("Pekerjaan: " + data.optString("pekerjaan", "Tidak ada data"));
-                            tvKelurahan.setText("Kelurahan: " + data.optString("kelurahan", "Tidak ada data"));
-                            tvKecamatan.setText("Kecamatan: " + data.optString("kecamatan", "Tidak ada data"));
-                            tvLatitude.setText("Latitude: " + data.optString("latitude", "Tidak ada data"));
-                            tvLongitude.setText("Longitude: " + data.optString("longitude", "Tidak ada data"));
-
-                            // Simpan NIK kembali ke SharedPreferences
-                            SharedPreferences loginPrefs = getSharedPreferences("LoginPrefs", MODE_PRIVATE);
-                            SharedPreferences.Editor editor = loginPrefs.edit();
-                            editor.putString("NIK", nik);
-                            editor.apply();
-
-                            // Menandai bahwa user telah terdaftar
-                            SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-                            SharedPreferences.Editor regEditor = registrationPrefs.edit();
-                            regEditor.putBoolean(nik + "_registered", true);
-                            regEditor.apply();
-
-                            Log.d("Status", "Data successfully parsed and displayed");
-                        } else {
-                            tvStatus.setText(response.getString("message"));
-                            Log.d("Status", "Status not success: " + response.getString("message"));
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Log.e("Status", "Error parsing JSON: " + e.getMessage());
-                        Log.e("Status", "JSON content: " + response.toString());
-                        Toast.makeText(Status.this, "Error parsing data: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                },
-                error -> {
-                    error.printStackTrace();
-                    Log.e("Status", "Error fetching data: " + error.toString());
-                    Toast.makeText(Status.this, "Error fetching data: " + error.getMessage(), Toast.LENGTH_LONG).show();
-                });
-
-        // Timeout
-        jsonObjectRequest.setRetryPolicy(new com.android.volley.DefaultRetryPolicy(
-                30000, // 30 detik
-                com.android.volley.DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                com.android.volley.DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-        ));
-
-        RequestQueue requestQueue = Volley.newRequestQueue(this);
-        requestQueue.add(jsonObjectRequest);
+    private void displayDataFromPrefs(SharedPreferences prefs) {
+        tvStatus.setText("Status: Data masih tahap review");
+        tvNama.setText("Nama: " + prefs.getString("nama", ""));
+        tvNik.setText("NIK: " + prefs.getString("nomor_ktp", ""));
+        tvAlamat.setText("Alamat: " + prefs.getString("alamat", ""));
+        tvRt.setText("RT: " + prefs.getString("rt", ""));
+        tvRw.setText("RW: " + prefs.getString("rw", ""));
+        tvTelp.setText("No. Telp: " + prefs.getString("telp_hp", ""));
+        tvKodePos.setText("Kode Pos: " + prefs.getString("kode_pos", ""));
+        tvJumlahPenghuni.setText("Jumlah Penghuni: " + prefs.getString("jumlah_penghuni", ""));
+        tvPekerjaan.setText("Pekerjaan: " + prefs.getString("pekerjaan", ""));
+        tvKelurahan.setText("Kelurahan: " + prefs.getString("kelurahan", ""));
+        tvKecamatan.setText("Kecamatan: " + prefs.getString("kecamatan", ""));
+        tvLatitude.setText("Latitude: " + prefs.getString("latitude", ""));
+        tvLongitude.setText("Longitude: " + prefs.getString("longitude", ""));
     }
 }

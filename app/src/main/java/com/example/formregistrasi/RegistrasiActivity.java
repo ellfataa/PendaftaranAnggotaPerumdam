@@ -74,11 +74,24 @@ public class RegistrasiActivity extends AppCompatActivity {
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
+    private String userName;
     private String userEmail;
+
+    private static final String PREFS_NAME = "UserPrefs";
+    private static final String HAS_REGISTERED_KEY = "hasRegistered";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Check if user has already registered
+        if (hasUserAlreadyRegistered()) {
+            Toast.makeText(this, "Anda sudah melakukan registrasi sebelumnya.", Toast.LENGTH_LONG).show();
+            finish(); // Close the activity
+            return;
+        }
+
         try {
             setContentView(R.layout.activity_registrasi);
         } catch (Exception e) {
@@ -91,17 +104,32 @@ public class RegistrasiActivity extends AppCompatActivity {
         fetchDropdownData();
 
         // Get user data from intent
-        String userName = getIntent().getStringExtra("userName");
+        userName = getIntent().getStringExtra("userName");
         userEmail = getIntent().getStringExtra("userEmail");
 
         // Set name and email
         if (userName != null && !userName.isEmpty()) {
             etNama.setText(userName);
-            // etNama.setEnabled(false);
+        } else {
+            // If userName is not available, try to get it from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
+            String name = sharedPreferences.getString("name", "");
+            if (!name.isEmpty()) {
+                etNama.setText(name);
+            }
         }
+
         if (userEmail != null && !userEmail.isEmpty()) {
             etEmail.setText(userEmail);
             etEmail.setVisibility(View.GONE); // Hide the email field
+        } else {
+            // If userEmail is not available, try to get it from SharedPreferences
+            SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
+            String email = sharedPreferences.getString("email", "");
+            if (!email.isEmpty()) {
+                etEmail.setText(email);
+                etEmail.setVisibility(View.GONE); // Hide the email field
+            }
         }
 
         // Check if user has already registered
@@ -114,7 +142,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta.setOnClickListener(v -> openMap());
     }
 
-    // Fungsi buat set semua view yang ada di layout
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
@@ -135,7 +162,6 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         fotoKTP = findViewById(R.id.fotoKTP);
         fotoRumah = findViewById(R.id.fotoRumah);
-        // Menyembunyikan tampilan imageView terlebih dahulu
         fotoKTP.setVisibility(View.GONE);
         fotoRumah.setVisibility(View.GONE);
 
@@ -143,22 +169,17 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnDaftar = findViewById(R.id.btnDaftar);
         btnPickImgKTP = findViewById(R.id.btnPickImgKTP);
         btnPickImgRumah = findViewById(R.id.btnPickImgRumah);
-        btnPickImgKTP.setOnClickListener(v -> showImageSourceDialog(true));
-        btnPickImgRumah.setOnClickListener(v -> showImageSourceDialog(false));
         btnPeta = findViewById(R.id.btnPeta);
     }
 
-    // Fungsi buat ngasih aksi ke tombol-tombol
     private void setListeners() {
         btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
         btnDaftar.setOnClickListener(v -> registerUser());
         btnKembali.setOnClickListener(this::btnKembali);
-        btnPeta.setOnClickListener(v -> openMap());
         btnPeta.setOnClickListener(v -> checkLocationServiceAndOpenMap());
     }
 
-    // Fungsi buat ngecek layanan lokasi dan buka peta
     private void checkLocationServiceAndOpenMap() {
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
@@ -168,7 +189,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi buat nampilin dialog pengaturan lokasi
     private void showLocationSettingsDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Lokasi tidak aktif");
@@ -181,34 +201,18 @@ public class RegistrasiActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // Fungsi buat milih gambar dari galeri
-    private void pickImage(int requestCode) {
-        Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        startActivityForResult(intent, requestCode);
-    }
-
-    // Fungsi buat buka halaman Maps buat pilih lokasi
     private void openMap() {
         Intent intent = new Intent(this, Maps.class);
         startActivityForResult(intent, REQUEST_CODE_MAP);
     }
 
-    // Fungsi buat nampilin dialog pilihan sumber gambar (BELUM BISA DIGUNAKAN)
-    private void showImageSourceDialog(boolean isKTP) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Pilih Sumber Gambar");
-        String[] options = {"Kamera", "Galeri"};
-        builder.setItems(options, (dialog, which) -> {
-            if (which == 0) {
-                dispatchTakePictureIntent(isKTP);
-            } else {
-                pickImage(isKTP ? REQUEST_IMAGE_KTP : REQUEST_IMAGE_RUMAH);
-            }
-        });
-        builder.show();
+    private void pickImage(int requestCode) {
+        Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryIntent.setType("image/*");
+
+        startActivityForResult(galleryIntent, requestCode);
     }
 
-    // Fungsi buat ngambil gambar pake kamera (BELUM BISA DIGUNAKAN)
     private void dispatchTakePictureIntent(boolean isKTP) {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -233,7 +237,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi buat bikin file gambar
     private File createImageFile(boolean isKTP) throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -246,7 +249,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         return image;
     }
 
-    // Fungsi buat ngatur hasil dari aktivitas lain (milih gambar atau lokasi)
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -257,16 +259,6 @@ public class RegistrasiActivity extends AppCompatActivity {
                     if (data != null && data.getData() != null) {
                         Uri imageUri = data.getData();
                         processImage(imageUri, requestCode == REQUEST_IMAGE_KTP);
-                    }
-                    break;
-                case REQUEST_IMAGE_CAPTURE_KTP:
-                    if (photoUriKTP != null) {
-                        processImage(photoUriKTP, true);
-                    }
-                    break;
-                case REQUEST_IMAGE_CAPTURE_RUMAH:
-                    if (photoUriRumah != null) {
-                        processImage(photoUriRumah, false);
                     }
                     break;
                 case REQUEST_CODE_MAP:
@@ -291,7 +283,13 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi buat ngambil data buat dropdown dari server
+    private Uri getImageUri(Context context, Bitmap bitmap) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(context.getContentResolver(), bitmap, "Title", null);
+        return Uri.parse(path);
+    }
+
     private void fetchDropdownData() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
@@ -302,7 +300,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         fetchPekerjaan();
     }
 
-    // Fungsi buat ngambil data kecamatan dari server
     private void fetchKecamatan() {
         String url = BASE_URL + "getKecamatan";
 
@@ -367,7 +364,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Fungsi buat ngambil data kelurahan berdasarkan kecamatan dari server
     private void fetchKelurahanByKecamatan(String idKecamatan) {
         String url = BASE_URL + "getKelurahanByKecamatan";
 
@@ -420,7 +416,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Fungsi buat ngambil data pekerjaan dari server
     private void fetchPekerjaan() {
         String url = BASE_URL + "getPekerjaan";
 
@@ -485,7 +480,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Fungsi buat ngisi dropdown dengan data dari server
     private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
         try {
             Map<String, String> itemMap = new HashMap<>();
@@ -534,11 +528,10 @@ public class RegistrasiActivity extends AppCompatActivity {
     }
 
     private boolean hasUserAlreadyRegistered() {
-        SharedPreferences prefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-        return prefs.getBoolean(userEmail + "_registered", false);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        return prefs.getBoolean(HAS_REGISTERED_KEY, false);
     }
 
-    // Fungsi buat ngedaftarin data inputan user ke server database
     private void registerUser() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
@@ -602,10 +595,9 @@ public class RegistrasiActivity extends AppCompatActivity {
         };
 
         Volley.newRequestQueue(this).add(stringRequest);
+        onRegistrationSuccess();
     }
 
-
-    // Fungsi buat ngecek apakah semua field udah diisi dengan bener atau belum
     private boolean validateFields() {
         if (etNama.getText().toString().isEmpty() ||
                 etNik.getText().toString().isEmpty() ||
@@ -629,7 +621,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         return true;
     }
 
-    // Fungsi buat memproses gambar yang dipilih user
     private void processImage(Uri imageUri, boolean isKTP) {
         try {
             InputStream imageStream = getContentResolver().openInputStream(imageUri);
@@ -638,11 +629,11 @@ public class RegistrasiActivity extends AppCompatActivity {
             if (isKTP) {
                 fotoKTPBase64 = encodedImage;
                 fotoKTP.setImageBitmap(selectedImage);
-                fotoKTP.setVisibility(View.VISIBLE); // Memunculkan ImageView
+                fotoKTP.setVisibility(View.VISIBLE);
             } else {
                 fotoRumahBase64 = encodedImage;
                 fotoRumah.setImageBitmap(selectedImage);
-                fotoRumah.setVisibility(View.VISIBLE); // Memunculkan ImageView
+                fotoRumah.setVisibility(View.VISIBLE);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -650,7 +641,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Fungsi buat ubah gambar jadi format base64
     private String encodeImageToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
@@ -658,39 +648,48 @@ public class RegistrasiActivity extends AppCompatActivity {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    // Fungsi buat ngecek koneksi internet
     private boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
 
-    // Fungsi buat aksi tombol kembali ke IndexPendaftaranLogin
     public void btnKembali(View view) {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
     }
 
-    // Fungsi yang dijalanin kalo user berhasil registrasi
     private void onRegistrationSuccess() {
-        // Save registration status
-        SharedPreferences registrationPrefs = getSharedPreferences("RegistrationPrefs", MODE_PRIVATE);
-        SharedPreferences.Editor registrationEditor = registrationPrefs.edit();
-        registrationEditor.putBoolean(userEmail + "_registered", true);
-        registrationEditor.apply();
-
-        Log.d("RegistrasiActivity", "Registration success for email: " + userEmail);
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putBoolean(HAS_REGISTERED_KEY, true);
+        editor.apply();
 
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
-        setResult(RESULT_OK);
 
-        // Redirect to LoginActivity or appropriate next screen
-        Intent intent = new Intent(RegistrasiActivity.this, LoginActivity.class);
+        // Create an intent to start the Status activity
+        Intent intent = new Intent(RegistrasiActivity.this, Status.class);
+
+        // Put all the registration data into the intent
+        intent.putExtra("nama", etNama.getText().toString());
+        intent.putExtra("nomor_ktp", etNik.getText().toString());
+        intent.putExtra("alamat", etAlamat.getText().toString());
+        intent.putExtra("rt", etRT.getText().toString());
+        intent.putExtra("rw", etRW.getText().toString());
+        intent.putExtra("telp_hp", etNoTelp.getText().toString());
+        intent.putExtra("kode_pos", etKodePos.getText().toString());
+        intent.putExtra("jumlah_penghuni", etJumlahPenghuni.getText().toString());
+        intent.putExtra("pekerjaan", idPekerjaan.getText().toString());
+        intent.putExtra("kelurahan", idKelurahan.getText().toString());
+        intent.putExtra("kecamatan", idKecamatan.getText().toString());
+        intent.putExtra("latitude", etLatitude.getText().toString());
+        intent.putExtra("longitude", etLongitude.getText().toString());
+
         startActivity(intent);
         finish();
     }
 
-    // Fungsi buat memfilter input cuma bisa teks doang
+
     private InputFilter getTextOnlyFilter() {
         return new InputFilter() {
             @Override

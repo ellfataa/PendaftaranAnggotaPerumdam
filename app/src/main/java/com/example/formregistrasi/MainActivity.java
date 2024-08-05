@@ -44,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
     private Button btn_masuk;
     private EditText et_emailAkun, et_passwordAkun;
 
+    private static final String PREFS_NAME = "UserPrefs";
+    private static final String HAS_REGISTERED_KEY = "hasRegistered";
+
     private static final String URL_LOGIN = "http://192.168.230.84/registrasi-pelanggan/public/api/login";
 
     GoogleSignInOptions gso;
@@ -205,8 +208,14 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        // Cek status registrasi
+                        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+
                         // Pindah ke halaman berikutnya
                         Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
+                        intent.putExtra("hasRegistered", hasRegistered);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
                         finish();
                     }
