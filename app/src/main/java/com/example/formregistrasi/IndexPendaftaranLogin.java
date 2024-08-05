@@ -46,6 +46,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         initializeViews();
         setupSharedPreferences();
         setupGoogleSignIn();
+        checkRegistrationStatus();
 
         // Ambil status registrasi dari Intent
         boolean hasRegistered = getIntent().getBooleanExtra("hasRegistered", false);
@@ -94,11 +95,12 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void checkStatusAccess() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+        SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        String savedNik = userPrefs.getString("nomor_ktp", "");
 
-        if (hasRegistered) {
+        if (!savedNik.isEmpty()) {
             Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
+            intent.putExtra("NIK", savedNik);
             startActivity(intent);
         } else {
             showAlert("Anda belum melakukan registrasi. Silakan registrasi terlebih dahulu.");
@@ -125,14 +127,20 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     }
 
     private void checkRegistrationStatus() {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+        SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        String savedNik = userPrefs.getString("nomor_ktp", "");
+        boolean hasRegistered = !savedNik.isEmpty();
+
         if (btn_registrasi != null) {
             btn_registrasi.setEnabled(!hasRegistered);
         }
         if (btn_status != null) {
-            btn_status.setEnabled(true);
+            btn_status.setEnabled(hasRegistered);
         }
+
+        SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+        editor.putBoolean(HAS_REGISTERED_KEY, hasRegistered);
+        editor.apply();
     }
 
     private void handleRegistrationStatus() {
@@ -173,7 +181,10 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         txtUserName.setVisibility(View.VISIBLE);
         btn_keluar.setVisibility(View.VISIBLE);
         btn_status.setVisibility(View.VISIBLE);
-        btn_registrasi.setVisibility(View.VISIBLE);
+
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY, false);
+        btn_registrasi.setVisibility(hasRegistered ? View.GONE : View.VISIBLE);
     }
 
     private void updateUIForLoggedOutUser() {
@@ -266,7 +277,11 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
                 SharedPreferences registrationPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
                 SharedPreferences.Editor editor = registrationPrefs.edit();
                 editor.putBoolean(HAS_REGISTERED_KEY, true);
+                if (data != null && data.hasExtra("NIK")) {
+                    editor.putString("nomor_ktp", data.getStringExtra("NIK"));
+                }
                 editor.apply();
+                updateButtonStates();
             }
         }
     }
@@ -275,6 +290,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         checkLoginStatus();
+        checkRegistrationStatus();
         updateButtonStates();
     }
 

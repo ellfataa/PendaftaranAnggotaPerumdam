@@ -77,7 +77,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private String userName;
     private String userEmail;
 
-    private static final String PREFS_NAME = "UserPrefs";
+    static final String PREFS_NAME = "UserPrefs";
     private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
 
@@ -543,6 +543,12 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
+        String nik = etNik.getText().toString();
+//        if (isNikAlreadyRegistered(nik)) {
+//            Toast.makeText(this, "NIK ini sudah terdaftar sebelumnya", Toast.LENGTH_SHORT).show();
+//            return;
+//        }
+
         String url = BASE_URL + "register";
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -596,6 +602,12 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         Volley.newRequestQueue(this).add(stringRequest);
         onRegistrationSuccess();
+    }
+
+    private boolean isNikAlreadyRegistered(String nik) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String savedNik = prefs.getString("nomor_ktp", "");
+        return !savedNik.isEmpty() && savedNik.equals(nik);
     }
 
     private boolean validateFields() {
@@ -663,28 +675,34 @@ public class RegistrasiActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean(HAS_REGISTERED_KEY, true);
+        editor.putString("nomor_ktp", etNik.getText().toString());
+
+        // Simpan semua data registrasi
+        editor.putString("nama", etNama.getText().toString());
+        editor.putString("alamat", etAlamat.getText().toString());
+        editor.putString("rt", etRT.getText().toString());
+        editor.putString("rw", etRW.getText().toString());
+        editor.putString("telp_hp", etNoTelp.getText().toString());
+        editor.putString("kode_pos", etKodePos.getText().toString());
+        editor.putString("jumlah_penghuni", etJumlahPenghuni.getText().toString());
+        editor.putString("pekerjaan", idPekerjaan.getText().toString());
+        editor.putString("kelurahan", idKelurahan.getText().toString());
+        editor.putString("kecamatan", idKecamatan.getText().toString());
+        editor.putString("latitude", etLatitude.getText().toString());
+        editor.putString("longitude", etLongitude.getText().toString());
+
         editor.apply();
+
+        // Simpan NIK ke SharedPreferences user
+        SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        SharedPreferences.Editor userEditor = userPrefs.edit();
+        userEditor.putString("nomor_ktp", etNik.getText().toString());
+        userEditor.apply();
 
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
 
-        // Create an intent to start the Status activity
         Intent intent = new Intent(RegistrasiActivity.this, Status.class);
-
-        // Put all the registration data into the intent
-        intent.putExtra("nama", etNama.getText().toString());
-        intent.putExtra("nomor_ktp", etNik.getText().toString());
-        intent.putExtra("alamat", etAlamat.getText().toString());
-        intent.putExtra("rt", etRT.getText().toString());
-        intent.putExtra("rw", etRW.getText().toString());
-        intent.putExtra("telp_hp", etNoTelp.getText().toString());
-        intent.putExtra("kode_pos", etKodePos.getText().toString());
-        intent.putExtra("jumlah_penghuni", etJumlahPenghuni.getText().toString());
-        intent.putExtra("pekerjaan", idPekerjaan.getText().toString());
-        intent.putExtra("kelurahan", idKelurahan.getText().toString());
-        intent.putExtra("kecamatan", idKecamatan.getText().toString());
-        intent.putExtra("latitude", etLatitude.getText().toString());
-        intent.putExtra("longitude", etLongitude.getText().toString());
-
+        intent.putExtra("NIK", etNik.getText().toString());
         startActivity(intent);
         finish();
     }

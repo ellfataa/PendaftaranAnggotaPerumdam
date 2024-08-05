@@ -1,5 +1,7 @@
 package com.example.formregistrasi;
 
+import static com.example.formregistrasi.RegistrasiActivity.PREFS_NAME;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -11,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class Status extends AppCompatActivity {
 
+    private static final String PREFS_NAME = "UserPrefs" ;
     private TextView tvStatus, tvNama, tvNik, tvAlamat, tvRt, tvRw, tvTelp, tvKodePos, tvJumlahPenghuni;
     private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude;
     private Button btnKembali;
@@ -22,16 +25,21 @@ public class Status extends AppCompatActivity {
 
         initializeViews();
 
-        // Get data from intent
+        // Get NIK from intent
         Intent intent = getIntent();
-        if (intent.hasExtra("nomor_ktp")) {
-            displayData(intent);
+        String nik = intent.getStringExtra("NIK");
+
+        if (nik != null && !nik.isEmpty()) {
+            fetchDataByNik(nik);
         } else {
-            // If no data in intent, try to get from SharedPreferences
+            // If no NIK in intent, try to get from SharedPreferences
             SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
-            String nik = prefs.getString("nomor_ktp", "");
-            if (!nik.isEmpty()) {
-                displayDataFromPrefs(prefs);
+            String savedNik = prefs.getString("nomor_ktp", "");
+            if (!savedNik.isEmpty()) {
+                fetchDataByNik(savedNik);
+            } else {
+                tvStatus.setText("Status: Data tidak ditemukan");
+                clearFields();
             }
         }
 
@@ -64,39 +72,17 @@ public class Status extends AppCompatActivity {
         btnKembali = findViewById(R.id.btnKembali);
     }
 
-    private void displayData(Intent intent) {
-        tvStatus.setText("Status: Data masih tahap review");
-        tvNama.setText("Nama: " + intent.getStringExtra("nama"));
-        tvNik.setText("NIK: " + intent.getStringExtra("nomor_ktp"));
-        tvAlamat.setText("Alamat: " + intent.getStringExtra("alamat"));
-        tvRt.setText("RT: " + intent.getStringExtra("rt"));
-        tvRw.setText("RW: " + intent.getStringExtra("rw"));
-        tvTelp.setText("No. Telp: " + intent.getStringExtra("telp_hp"));
-        tvKodePos.setText("Kode Pos: " + intent.getStringExtra("kode_pos"));
-        tvJumlahPenghuni.setText("Jumlah Penghuni: " + intent.getStringExtra("jumlah_penghuni"));
-        tvPekerjaan.setText("Pekerjaan: " + intent.getStringExtra("pekerjaan"));
-        tvKelurahan.setText("Kelurahan: " + intent.getStringExtra("kelurahan"));
-        tvKecamatan.setText("Kecamatan: " + intent.getStringExtra("kecamatan"));
-        tvLatitude.setText("Latitude: " + intent.getStringExtra("latitude"));
-        tvLongitude.setText("Longitude: " + intent.getStringExtra("longitude"));
+    private void fetchDataByNik(String nik) {
+        SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        String savedNik = userPrefs.getString("nomor_ktp", "");
 
-        // Save data to SharedPreferences
-        SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("nik", intent.getStringExtra("nomor_ktp"));
-        editor.putString("nama", intent.getStringExtra("nama"));
-        editor.putString("alamat", intent.getStringExtra("alamat"));
-        editor.putString("rt", intent.getStringExtra("rt"));
-        editor.putString("rw", intent.getStringExtra("rw"));
-        editor.putString("telp_hp", intent.getStringExtra("telp_hp"));
-        editor.putString("kode_pos", intent.getStringExtra("kode_pos"));
-        editor.putString("jumlah_penghuni", intent.getStringExtra("jumlah_penghuni"));
-        editor.putString("pekerjaan", intent.getStringExtra("pekerjaan"));
-        editor.putString("kelurahan", intent.getStringExtra("kelurahan"));
-        editor.putString("kecamatan", intent.getStringExtra("kecamatan"));
-        editor.putString("latitude", intent.getStringExtra("latitude"));
-        editor.putString("longitude", intent.getStringExtra("longitude"));
-        editor.apply();
+        if (nik.equals(savedNik)) {
+            SharedPreferences registrationPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            displayDataFromPrefs(registrationPrefs);
+        } else {
+            tvStatus.setText("Status: Data tidak ditemukan");
+            clearFields();
+        }
     }
 
     private void displayDataFromPrefs(SharedPreferences prefs) {
@@ -114,5 +100,21 @@ public class Status extends AppCompatActivity {
         tvKecamatan.setText("Kecamatan: " + prefs.getString("kecamatan", ""));
         tvLatitude.setText("Latitude: " + prefs.getString("latitude", ""));
         tvLongitude.setText("Longitude: " + prefs.getString("longitude", ""));
+    }
+
+    private void clearFields() {
+        tvNama.setText("Nama: -");
+        tvNik.setText("NIK: -");
+        tvAlamat.setText("Alamat: -");
+        tvRt.setText("RT: -");
+        tvRw.setText("RW: -");
+        tvTelp.setText("No. Telp: -");
+        tvKodePos.setText("Kode Pos: -");
+        tvJumlahPenghuni.setText("Jumlah Penghuni: -");
+        tvPekerjaan.setText("Pekerjaan: -");
+        tvKelurahan.setText("Kelurahan: -");
+        tvKecamatan.setText("Kecamatan: -");
+        tvLatitude.setText("Latitude: -");
+        tvLongitude.setText("Longitude: -");
     }
 }
