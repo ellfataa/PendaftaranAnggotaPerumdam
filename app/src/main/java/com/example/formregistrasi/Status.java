@@ -1,7 +1,5 @@
 package com.example.formregistrasi;
 
-import static com.example.formregistrasi.RegistrasiActivity.PREFS_NAME;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -13,11 +11,12 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class Status extends AppCompatActivity {
 
-    private static final String PREFS_NAME = "UserPrefs" ;
+    private static final String PREFS_NAME = "UserPrefs";
     private TextView tvStatus, tvNama, tvNik, tvAlamat, tvRt, tvRw, tvTelp, tvKodePos, tvJumlahPenghuni;
     private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude;
     private Button btnKembali;
 
+    // Method ini dipanggil pas activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -25,14 +24,14 @@ public class Status extends AppCompatActivity {
 
         initializeViews();
 
-        // Get NIK from intent
+        // Ambil NIK dari intent
         Intent intent = getIntent();
         String nik = intent.getStringExtra("NIK");
 
         if (nik != null && !nik.isEmpty()) {
             fetchDataByNik(nik);
         } else {
-            // If no NIK in intent, try to get from SharedPreferences
+            // Kalo gak ada NIK di intent, coba ambil dari SharedPreferences
             SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
             String savedNik = prefs.getString("nomor_ktp", "");
             if (!savedNik.isEmpty()) {
@@ -47,13 +46,15 @@ public class Status extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);
+                intent.putExtra("REGISTERED", true);
+                intent.putExtra("NIK", getIntent().getStringExtra("NIK"));
                 startActivity(intent);
                 finish();
             }
         });
     }
 
-    // Fungsi buat mendapatkan id semua view yang digunakan
+    // Fungsi buat dapetin id semua view yang dipake
     private void initializeViews() {
         tvStatus = findViewById(R.id.tvStatus);
         tvNama = findViewById(R.id.tvNama);
@@ -72,36 +73,39 @@ public class Status extends AppCompatActivity {
         btnKembali = findViewById(R.id.btnKembali);
     }
 
+    // Fungsi buat ngambil data berdasarkan NIK
     private void fetchDataByNik(String nik) {
         SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
-        String savedNik = userPrefs.getString("nomor_ktp", "");
+        String userEmail = userPrefs.getString("email", "");
+        boolean hasRegistered = userPrefs.getBoolean("hasRegistered_" + userEmail, false);
 
-        if (nik.equals(savedNik)) {
-            SharedPreferences registrationPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            displayDataFromPrefs(registrationPrefs);
+        if (hasRegistered) {
+            displayDataFromPrefs(userPrefs, userEmail);
         } else {
-            tvStatus.setText("Status: Data tidak ditemukan");
+            tvStatus.setText("Status: Belum melakukan registrasi");
             clearFields();
         }
     }
 
-    private void displayDataFromPrefs(SharedPreferences prefs) {
+    // Fungsi buat nampilin data dari SharedPreferences
+    private void displayDataFromPrefs(SharedPreferences prefs, String email) {
         tvStatus.setText("Status: Data masih tahap review");
-        tvNama.setText("Nama: " + prefs.getString("nama", ""));
-        tvNik.setText("NIK: " + prefs.getString("nomor_ktp", ""));
-        tvAlamat.setText("Alamat: " + prefs.getString("alamat", ""));
-        tvRt.setText("RT: " + prefs.getString("rt", ""));
-        tvRw.setText("RW: " + prefs.getString("rw", ""));
-        tvTelp.setText("No. Telp: " + prefs.getString("telp_hp", ""));
-        tvKodePos.setText("Kode Pos: " + prefs.getString("kode_pos", ""));
-        tvJumlahPenghuni.setText("Jumlah Penghuni: " + prefs.getString("jumlah_penghuni", ""));
-        tvPekerjaan.setText("Pekerjaan: " + prefs.getString("pekerjaan", ""));
-        tvKelurahan.setText("Kelurahan: " + prefs.getString("kelurahan", ""));
-        tvKecamatan.setText("Kecamatan: " + prefs.getString("kecamatan", ""));
-        tvLatitude.setText("Latitude: " + prefs.getString("latitude", ""));
-        tvLongitude.setText("Longitude: " + prefs.getString("longitude", ""));
+        tvNama.setText("Nama: " + prefs.getString("nama_" + email, ""));
+        tvNik.setText("NIK: " + prefs.getString("nomor_ktp_" + email, ""));
+        tvAlamat.setText("Alamat: " + prefs.getString("alamat_" + email, ""));
+        tvRt.setText("RT: " + prefs.getString("rt_" + email, ""));
+        tvRw.setText("RW: " + prefs.getString("rw_" + email, ""));
+        tvTelp.setText("No. Telp: " + prefs.getString("telp_hp_" + email, ""));
+        tvKodePos.setText("Kode Pos: " + prefs.getString("kode_pos_" + email, ""));
+        tvJumlahPenghuni.setText("Jumlah Penghuni: " + prefs.getString("jumlah_penghuni_" + email, ""));
+        tvPekerjaan.setText("Pekerjaan: " + prefs.getString("pekerjaan_" + email, ""));
+        tvKelurahan.setText("Kelurahan: " + prefs.getString("kelurahan_" + email, ""));
+        tvKecamatan.setText("Kecamatan: " + prefs.getString("kecamatan_" + email, ""));
+        tvLatitude.setText("Latitude: " + prefs.getString("latitude_" + email, ""));
+        tvLongitude.setText("Longitude: " + prefs.getString("longitude_" + email, ""));
     }
 
+    // Fungsi buat ngehapus semua isian field
     private void clearFields() {
         tvNama.setText("Nama: -");
         tvNik.setText("NIK: -");
