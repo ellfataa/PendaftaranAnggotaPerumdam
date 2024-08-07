@@ -22,7 +22,7 @@
                 android:id="@+id/txtUserName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textSize="18sp"
+                android:textSize="12sp"
                 android:textColor="@color/black"
                 android:textStyle="bold"
                 android:layout_alignParentStart="true"

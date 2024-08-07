@@ -247,6 +247,11 @@ public class MainActivity extends AppCompatActivity {
             if (personEmail == null) personEmail = "Email tidak tersedia";
             if (personName == null) personName = "Nama tidak tersedia";
 
+            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+            editor.putString(EMAIL_KEY, personEmail);
+            editor.putString(NAME_KEY, personName);
+            editor.apply();
+
             saveUserInfo(personEmail, personName, "");  // Token kosong untuk Google Sign In
 
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);

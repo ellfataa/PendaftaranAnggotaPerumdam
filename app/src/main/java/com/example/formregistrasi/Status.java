@@ -2,12 +2,17 @@ package com.example.formregistrasi;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.StyleSpan;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class Status extends AppCompatActivity {
@@ -31,7 +36,12 @@ public class Status extends AppCompatActivity {
         if (!userEmail.isEmpty()) {
             txtUserEmail.setText(userEmail);
             txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
-            fetchDataByEmail(userEmail);
+            boolean hasRegistered = sharedPreferences.getBoolean("hasRegistered_" + userEmail, false);
+            if (hasRegistered) {
+                fetchDataByEmail(userEmail);
+            } else {
+                showNotRegisteredPopup();
+            }
         } else {
             Toast.makeText(this, "Email pengguna tidak ditemukan", Toast.LENGTH_SHORT).show();
             tvStatus.setText("Status: Data tidak ditemukan");
@@ -80,20 +90,27 @@ public class Status extends AppCompatActivity {
     }
 
     private void displayDataFromPrefs(SharedPreferences prefs, String email) {
-        tvStatus.setText("Status: Data masih tahap review");
-        tvNama.setText("Nama: " + prefs.getString("nama_" + email, ""));
-        tvNik.setText("NIK: " + prefs.getString("nomor_ktp_" + email, ""));
-        tvAlamat.setText("Alamat: " + prefs.getString("alamat_" + email, ""));
-        tvRt.setText("RT: " + prefs.getString("rt_" + email, ""));
-        tvRw.setText("RW: " + prefs.getString("rw_" + email, ""));
-        tvTelp.setText("No. Telp: " + prefs.getString("telp_hp_" + email, ""));
-        tvKodePos.setText("Kode Pos: " + prefs.getString("kode_pos_" + email, ""));
-        tvJumlahPenghuni.setText("Jumlah Penghuni: " + prefs.getString("jumlah_penghuni_" + email, ""));
-        tvPekerjaan.setText("Pekerjaan: " + prefs.getString("pekerjaan_" + email, ""));
-        tvKelurahan.setText("Kelurahan: " + prefs.getString("kelurahan_" + email, ""));
-        tvKecamatan.setText("Kecamatan: " + prefs.getString("kecamatan_" + email, ""));
-        tvLatitude.setText("Latitude: " + prefs.getString("latitude_" + email, ""));
-        tvLongitude.setText("Longitude: " + prefs.getString("longitude_" + email, ""));
+        tvStatus.setText(getBoldText("Status: ", "Data masih tahap review"));
+        tvNama.setText(getBoldText("Nama: ", prefs.getString("nama_" + email, "")));
+        tvNik.setText(getBoldText("Nomor KTP: ", prefs.getString("nomor_ktp_" + email, "")));
+        tvTelp.setText(getBoldText("Nomor Telepon: ", prefs.getString("telp_hp_" + email, "")));
+        tvPekerjaan.setText(getBoldText("Pekerjaan: ", prefs.getString("pekerjaan_" + email, "")));
+        tvAlamat.setText(getBoldText("Alamat: ", prefs.getString("alamat_" + email, "")));
+        tvRt.setText(getBoldText("RT: ", prefs.getString("rt_" + email, "")));
+        tvRw.setText(getBoldText("RW: ", prefs.getString("rw_" + email, "")));
+        tvKelurahan.setText(getBoldText("Kelurahan: ", prefs.getString("kelurahan_" + email, "")));
+        tvKecamatan.setText(getBoldText("Kecamatan: ", prefs.getString("kecamatan_" + email, "")));
+        tvKodePos.setText(getBoldText("Kode Pos: ", prefs.getString("kode_pos_" + email, "")));
+        tvJumlahPenghuni.setText(getBoldText("Jumlah Penghuni: ", prefs.getString("jumlah_penghuni_" + email, "")));
+        tvLatitude.setText(getBoldText("Latitude: ", prefs.getString("latitude_" + email, "")));
+        tvLongitude.setText(getBoldText("Longitude: ", prefs.getString("longitude_" + email, "")));
+    }
+
+    private SpannableStringBuilder getBoldText(String boldPart, String normalPart) {
+        SpannableStringBuilder builder = new SpannableStringBuilder(boldPart + normalPart);
+        StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
+        builder.setSpan(boldSpan, 0, boldPart.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return builder;
     }
 
     private void clearFields() {
@@ -110,5 +127,16 @@ public class Status extends AppCompatActivity {
         tvKecamatan.setText("Kecamatan: -");
         tvLatitude.setText("Latitude: -");
         tvLongitude.setText("Longitude: -");
+    }
+
+    private void showNotRegisteredPopup() {
+        new AlertDialog.Builder(this)
+                .setTitle("Belum Registrasi")
+                .setMessage("Anda belum melakukan registrasi")
+                .setPositiveButton("OK", (dialog, which) -> {
+                    finish(); // Kembali ke activity sebelumnya
+                })
+                .setCancelable(false)
+                .show();
     }
 }

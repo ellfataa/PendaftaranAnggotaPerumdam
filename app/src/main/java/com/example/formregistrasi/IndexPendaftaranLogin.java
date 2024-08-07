@@ -37,6 +37,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private static final String AUTH_TOKEN_KEY = "token";
     private static final String USER_EMAIL_KEY = "email";
     private static final String NAME_KEY = "nama";
+    private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,9 +80,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private void checkStatusAccess() {
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
         if (!userEmail.isEmpty()) {
-            Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
-            intent.putExtra("USER_EMAIL", userEmail);
-            startActivity(intent);
+            boolean hasRegistered = sharedPreferences.getBoolean(HAS_REGISTERED_KEY + "_" + userEmail, false);
+            if (hasRegistered) {
+                Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
+                intent.putExtra("USER_EMAIL", userEmail);
+                startActivity(intent);
+            } else {
+                showAlert("Anda belum melakukan registrasi");
+            }
         } else {
             showAlert("Anda belum melakukan login. Silakan login terlebih dahulu.");
         }
@@ -113,7 +119,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
         String authToken = sharedPreferences.getString(AUTH_TOKEN_KEY, "");
 
-        if (!userEmail.isEmpty() && !authToken.isEmpty()) {
+        if (!userEmail.isEmpty()) {
             updateUIForLoggedInUser(userEmail);
         } else {
             updateUIForLoggedOutUser();
@@ -124,19 +130,18 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         String userName = sharedPreferences.getString(NAME_KEY, "");
 
         if (!userName.isEmpty()) {
-            txtUserName.setText("Akun: " + userName);
+            txtUserName.setText(userName);
         } else {
-            txtUserName.setText("Akun: " + email);
+            txtUserName.setText(email);
         }
 
         txtUserName.setVisibility(View.VISIBLE);
-        txtUserEmail.setText(email);
         txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
         btn_keluar.setVisibility(View.VISIBLE);
         btn_status.setVisibility(View.VISIBLE);
 
         // Check if user has registered
-        boolean hasRegistered = sharedPreferences.getBoolean("hasRegistered_" + email, false);
+        boolean hasRegistered = sharedPreferences.getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
         btn_registrasi.setVisibility(hasRegistered ? View.GONE : View.VISIBLE);
     }
 

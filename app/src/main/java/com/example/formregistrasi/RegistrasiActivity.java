@@ -560,7 +560,11 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
-        String nik = etNik.getText().toString();
+        String nomorKtp = etNik.getText().toString();
+        if (isNomorKtpAlreadyRegistered(nomorKtp)) {
+            Toast.makeText(this, "Nomor KTP sudah terdaftar. Silakan gunakan Nomor KTP lain.", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         String url = BASE_URL + "register";
 
@@ -645,10 +649,9 @@ public class RegistrasiActivity extends AppCompatActivity {
     }
 
     // Method buat cek apakah NIK udah pernah didaftarin sebelumnya
-    private boolean isNikAlreadyRegistered(String nik) {
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String savedNik = prefs.getString("nomor_ktp", "");
-        return !savedNik.isEmpty() && savedNik.equals(nik);
+    private boolean isNomorKtpAlreadyRegistered(String nomorKtp) {
+        SharedPreferences prefs = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
+        return prefs.contains(nomorKtp);
     }
 
     // Method buat validasi semua field
@@ -724,6 +727,14 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         String userEmail = userPrefs.getString("email", "");
 
+        // Tambahkan nomor KTP ke daftar yang sudah terdaftar
+        String nomorKtp = etNik.getText().toString();
+        SharedPreferences allNomorKTP = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
+        SharedPreferences.Editor ktpEditor = allNomorKTP.edit();
+        ktpEditor.putString(nomorKtp, userEmail);
+        ktpEditor.apply();
+
+
         // Simpan status registrasi berdasarkan email
         editor.putBoolean(HAS_REGISTERED_KEY + "_" + userEmail, true);
 
@@ -790,4 +801,6 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         };
     }
+
+
 }

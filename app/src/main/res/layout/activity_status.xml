@@ -53,106 +53,158 @@
         </RelativeLayout>
 
         <TextView
-            android:id="@+id/tvStatus"
+            android:id="@+id/tvHeadline"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             android:textAlignment="center"
-            android:text="status"
-            android:textColor="#4CAF50"
-            android:layout_marginBottom="16dp"/>
+            android:text="Data Pelanggan"
+            android:textColor="@color/black"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="10dp"
+            />
 
         <TextView
             android:id="@+id/tvNama"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Nama Anda"
-            android:layout_marginBottom="8dp"/>
+            android:text="Nama"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvNik"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="NIK Anda"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvAlamat"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Alamat Anda"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvRt"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="RT"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvRw"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="RW"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvTelp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Nomor telepon Anda"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvKodePos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Kode Pos Anda"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvJumlahPenghuni"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Jumlah Penghuni"
-            android:layout_marginBottom="8dp"/>
+            android:text="Nomor KTP"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvPekerjaan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Pekerjaan"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvTelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nomor telepon"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvAlamat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alamat"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvRt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RT"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvRw"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="RW"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvKelurahan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Kelurahan"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvKecamatan"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Kecamatan"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvKodePos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kode Pos"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvJumlahPenghuni"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Jumlah Penghuni"
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvLatitude"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Latitude"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
 
         <TextView
             android:id="@+id/tvLongitude"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Longitude"
-            android:layout_marginBottom="8dp"/>
+            android:layout_marginBottom="8dp"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            />
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:text="Status"
+            android:textColor="#C51F01"
+            android:layout_marginBottom="16dp"/>
 
     </LinearLayout>
 
