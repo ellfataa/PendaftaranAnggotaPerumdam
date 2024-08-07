@@ -6,17 +6,17 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class Status extends AppCompatActivity {
 
-    private static final String PREFS_NAME = "UserPrefs";
+    private static final String PREFS_NAME = "UserInfo";
     private TextView tvStatus, tvNama, tvNik, tvAlamat, tvRt, tvRw, tvTelp, tvKodePos, tvJumlahPenghuni;
-    private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude;
+    private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude, txtUserEmail;
     private Button btnKembali;
 
-    // Method ini dipanggil pas activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,37 +24,30 @@ public class Status extends AppCompatActivity {
 
         initializeViews();
 
-        // Ambil NIK dari intent
-        Intent intent = getIntent();
-        String nik = intent.getStringExtra("NIK");
+        // Get email from SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String userEmail = sharedPreferences.getString("email", "");
 
-        if (nik != null && !nik.isEmpty()) {
-            fetchDataByNik(nik);
+        if (!userEmail.isEmpty()) {
+            txtUserEmail.setText(userEmail);
+            txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
+            fetchDataByEmail(userEmail);
         } else {
-            // Kalo gak ada NIK di intent, coba ambil dari SharedPreferences
-            SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
-            String savedNik = prefs.getString("nomor_ktp", "");
-            if (!savedNik.isEmpty()) {
-                fetchDataByNik(savedNik);
-            } else {
-                tvStatus.setText("Status: Data tidak ditemukan");
-                clearFields();
-            }
+            Toast.makeText(this, "Email pengguna tidak ditemukan", Toast.LENGTH_SHORT).show();
+            tvStatus.setText("Status: Data tidak ditemukan");
+            clearFields();
         }
 
         btnKembali.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);
-                intent.putExtra("REGISTERED", true);
-                intent.putExtra("NIK", getIntent().getStringExtra("NIK"));
                 startActivity(intent);
                 finish();
             }
         });
     }
 
-    // Fungsi buat dapetin id semua view yang dipake
     private void initializeViews() {
         tvStatus = findViewById(R.id.tvStatus);
         tvNama = findViewById(R.id.tvNama);
@@ -70,24 +63,22 @@ public class Status extends AppCompatActivity {
         tvKecamatan = findViewById(R.id.tvKecamatan);
         tvLatitude = findViewById(R.id.tvLatitude);
         tvLongitude = findViewById(R.id.tvLongitude);
+        txtUserEmail = findViewById(R.id.txtUserEmail);
         btnKembali = findViewById(R.id.btnKembali);
     }
 
-    // Fungsi buat ngambil data berdasarkan NIK
-    private void fetchDataByNik(String nik) {
-        SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
-        String userEmail = userPrefs.getString("email", "");
-        boolean hasRegistered = userPrefs.getBoolean("hasRegistered_" + userEmail, false);
+    private void fetchDataByEmail(String email) {
+        SharedPreferences userPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean hasRegistered = userPrefs.getBoolean("hasRegistered_" + email, false);
 
         if (hasRegistered) {
-            displayDataFromPrefs(userPrefs, userEmail);
+            displayDataFromPrefs(userPrefs, email);
         } else {
             tvStatus.setText("Status: Belum melakukan registrasi");
             clearFields();
         }
     }
 
-    // Fungsi buat nampilin data dari SharedPreferences
     private void displayDataFromPrefs(SharedPreferences prefs, String email) {
         tvStatus.setText("Status: Data masih tahap review");
         tvNama.setText("Nama: " + prefs.getString("nama_" + email, ""));
@@ -105,7 +96,6 @@ public class Status extends AppCompatActivity {
         tvLongitude.setText("Longitude: " + prefs.getString("longitude_" + email, ""));
     }
 
-    // Fungsi buat ngehapus semua isian field
     private void clearFields() {
         tvNama.setText("Nama: -");
         tvNik.setText("NIK: -");

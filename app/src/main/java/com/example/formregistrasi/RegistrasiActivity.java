@@ -23,6 +23,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -72,12 +73,13 @@ public class RegistrasiActivity extends AppCompatActivity {
     private ImageView fotoKTP, fotoRumah;
     private String fotoKTPBase64, fotoRumahBase64;
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
+    private TextView txtUserEmail;
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
     private String userName;
     private String userEmail;
 
-    static final String PREFS_NAME = "UserPrefs";
+    static final String PREFS_NAME = "UserInfo";
     private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
     // Method ini dipanggil ketika activity dibuat
@@ -120,18 +122,13 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         }
 
-        if (userEmail != null && !userEmail.isEmpty()) {
-            etEmail.setText(userEmail);
-            etEmail.setVisibility(View.GONE); // Sembunyiin field email
-        } else {
-            // Ambil email user dari SharedPreferences
-            SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
-            userEmail = sharedPreferences.getString("email", "");
-
-            if (!userEmail.isEmpty()) {
-                etEmail.setText(userEmail);
-                etEmail.setVisibility(View.GONE); // Sembunyiin field email
-            }
+        // Ambil email dari SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        userEmail = sharedPreferences.getString("email", "");
+        if (!userEmail.isEmpty()) {
+            txtUserEmail.setText(userEmail);
+            txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
+            etEmail.setVisibility(View.GONE); // Hide the email EditText
         }
 
         // Cek lagi apakah user udah pernah daftar
@@ -148,6 +145,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
+        txtUserEmail = findViewById(R.id.txtUserEmail);
         etEmail = findViewById(R.id.etEmail);
         etNik = findViewById(R.id.etNik);
         etAlamat = findViewById(R.id.etAlamat);
@@ -547,7 +545,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     // Method buat cek apakah user udah pernah daftar sebelumnya
     private boolean hasUserAlreadyRegistered() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        return prefs.getBoolean(HAS_REGISTERED_KEY, false);
+        return prefs.getBoolean(HAS_REGISTERED_KEY + "_" + userEmail, false);
     }
 
     // Method buat daftarin user ke server
@@ -611,6 +609,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 Map<String, String> params = new HashMap<>();
                 params.put("nama", etNama.getText().toString());
                 params.put("email", userEmail); // Use the hidden email
+                params.put("email", userEmail.isEmpty() ? etEmail.getText().toString() : userEmail);
                 params.put("nomor_ktp", etNik.getText().toString());
                 params.put("alamat", etAlamat.getText().toString());
                 params.put("rt", etRT.getText().toString());
@@ -726,13 +725,11 @@ public class RegistrasiActivity extends AppCompatActivity {
         String userEmail = userPrefs.getString("email", "");
 
         // Simpan status registrasi berdasarkan email
-        editor.putBoolean("hasRegistered_" + userEmail, true);
-
-        // Simpan NIK
-        editor.putString("nomor_ktp_" + userEmail, etNik.getText().toString());
+        editor.putBoolean(HAS_REGISTERED_KEY + "_" + userEmail, true);
 
         // Simpan semua data registrasi dengan prefix email
         editor.putString("nama_" + userEmail, etNama.getText().toString());
+        editor.putString("nomor_ktp_" + userEmail, etNik.getText().toString());
         editor.putString("alamat_" + userEmail, etAlamat.getText().toString());
         editor.putString("rt_" + userEmail, etRT.getText().toString());
         editor.putString("rw_" + userEmail, etRW.getText().toString());
