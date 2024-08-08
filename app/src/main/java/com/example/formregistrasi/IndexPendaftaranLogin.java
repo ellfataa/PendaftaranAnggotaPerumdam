@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
@@ -39,12 +40,11 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private static final String NAME_KEY = "nama";
     private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
+    // Ini method yang dijalanin pas activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_index_pendaftaran_login);
-
-        sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
 
         initializeViews();
         setupSharedPreferences();
@@ -53,6 +53,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         checkLoginStatus();
     }
 
+    // Buat inisialisasi semua view yang ada di layout
     private void initializeViews() {
         btn_status = findViewById(R.id.btn_status);
         btn_registrasi = findViewById(R.id.btn_registrasi);
@@ -62,21 +63,25 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         txtUserEmail = findViewById(R.id.txtUserEmail);
     }
 
+    // Buat setup SharedPreferences buat nyimpen data user
     private void setupSharedPreferences() {
         sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     }
 
+    // Buat setup Google Sign In
     private void setupGoogleSignIn() {
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestEmail().build();
         gsc = GoogleSignIn.getClient(this, gso);
     }
 
+    // Buat ngasih listener ke semua tombol
     private void setupButtonListeners() {
         btn_status.setOnClickListener(v -> checkStatusAccess());
         btn_registrasi.setOnClickListener(v -> checkRegistrationAccess());
         btn_keluar.setOnClickListener(v -> logout());
     }
 
+    // Buat ngecek akses ke halaman status
     private void checkStatusAccess() {
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
         if (!userEmail.isEmpty()) {
@@ -93,10 +98,11 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Buat ngecek akses ke halaman registrasi
     private void checkRegistrationAccess() {
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
         if (!userEmail.isEmpty()) {
-            boolean hasRegistered = sharedPreferences.getBoolean("hasRegistered_" + userEmail, false);
+            boolean hasRegistered = sharedPreferences.getBoolean(HAS_REGISTERED_KEY + "_" + userEmail, false);
             if (hasRegistered) {
                 showAlert("Anda sudah melakukan registrasi sebelumnya.");
             } else {
@@ -107,6 +113,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Buat nampilin pesan alert
     private void showAlert(String message) {
         new AlertDialog.Builder(this)
                 .setTitle("Informasi")
@@ -115,6 +122,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
                 .show();
     }
 
+    // Buat ngecek status login user
     private void checkLoginStatus() {
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
         String authToken = sharedPreferences.getString(AUTH_TOKEN_KEY, "");
@@ -126,6 +134,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Buat update tampilan kalo user udah login
     private void updateUIForLoggedInUser(String email) {
         String userName = sharedPreferences.getString(NAME_KEY, "");
 
@@ -136,15 +145,15 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
 
         txtUserName.setVisibility(View.VISIBLE);
-        txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
+        txtUserEmail.setVisibility(View.GONE);
         btn_keluar.setVisibility(View.VISIBLE);
         btn_status.setVisibility(View.VISIBLE);
 
-        // Check if user has registered
         boolean hasRegistered = sharedPreferences.getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
         btn_registrasi.setVisibility(hasRegistered ? View.GONE : View.VISIBLE);
     }
 
+    // Buat update tampilan kalo user belum login
     private void updateUIForLoggedOutUser() {
         txtUserName.setText("Akun: Belum Login");
         txtUserName.setVisibility(View.VISIBLE);
@@ -155,6 +164,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         btn_registrasi.setVisibility(View.VISIBLE);
     }
 
+    // Buat proses logout
     private void logout() {
         String authToken = sharedPreferences.getString(AUTH_TOKEN_KEY, "");
         if (!authToken.isEmpty()) {
@@ -164,6 +174,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         }
     }
 
+    // Buat logout dari akun biasa
     private void logoutRegular(String token) {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, LOGOUT_URL,
                 response -> {
@@ -171,7 +182,15 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
                     navigateToMainActivity();
                     Toast.makeText(IndexPendaftaranLogin.this, "Logout berhasil", Toast.LENGTH_SHORT).show();
                 },
-                error -> Toast.makeText(IndexPendaftaranLogin.this, "Logout gagal", Toast.LENGTH_SHORT).show()
+                error -> {
+                    if (error.networkResponse != null && error.networkResponse.statusCode == 500) {
+                        Toast.makeText(IndexPendaftaranLogin.this, "Server error saat logout. Mohon coba lagi nanti.", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(IndexPendaftaranLogin.this, "Logout gagal: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                    clearAuthData();
+                    navigateToMainActivity();
+                }
         ) {
             @Override
             public Map<String, String> getHeaders() {
@@ -180,10 +199,15 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
                 return headers;
             }
         };
+        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
+                30000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
+    // Buat logout dari akun Google
     private void logoutGoogle() {
         gsc.signOut().addOnCompleteListener(this, task -> {
             clearAuthData();
@@ -192,13 +216,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         });
     }
 
+    // Buat hapus data autentikasi dari SharedPreferences
     private void clearAuthData() {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.remove(AUTH_TOKEN_KEY);
-
         editor.apply();
     }
 
+    // Buat pindah ke MainActivity
     private void navigateToMainActivity() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -206,6 +231,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         finish();
     }
 
+    // Buat pindah ke halaman registrasi
     private void navigateToRegistration() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, RegistrasiActivity.class);
         String userEmail = sharedPreferences.getString(USER_EMAIL_KEY, "");
@@ -215,6 +241,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         startActivity(intent);
     }
 
+    // Ini method yang dijalanin pas activity di-resume
     @Override
     protected void onResume() {
         super.onResume();

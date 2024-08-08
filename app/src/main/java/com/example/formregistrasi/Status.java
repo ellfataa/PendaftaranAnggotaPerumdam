@@ -22,42 +22,18 @@ public class Status extends AppCompatActivity {
     private TextView tvPekerjaan, tvKelurahan, tvKecamatan, tvLatitude, tvLongitude, txtUserEmail;
     private Button btnKembali;
 
+    // Ini method yang pertama kali dijalanin pas activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_status);
 
         initializeViews();
-
-        // Get email from SharedPreferences
-        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String userEmail = sharedPreferences.getString("email", "");
-
-        if (!userEmail.isEmpty()) {
-            txtUserEmail.setText(userEmail);
-            txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
-            boolean hasRegistered = sharedPreferences.getBoolean("hasRegistered_" + userEmail, false);
-            if (hasRegistered) {
-                fetchDataByEmail(userEmail);
-            } else {
-                showNotRegisteredPopup();
-            }
-        } else {
-            Toast.makeText(this, "Email pengguna tidak ditemukan", Toast.LENGTH_SHORT).show();
-            tvStatus.setText("Status: Data tidak ditemukan");
-            clearFields();
-        }
-
-        btnKembali.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);
-                startActivity(intent);
-                finish();
-            }
-        });
+        setupUserData();
+        setupButtonListeners();
     }
 
+    // Buat nyiapin semua view yang ada di layout
     private void initializeViews() {
         tvStatus = findViewById(R.id.tvStatus);
         tvNama = findViewById(R.id.tvNama);
@@ -77,6 +53,40 @@ public class Status extends AppCompatActivity {
         btnKembali = findViewById(R.id.btnKembali);
     }
 
+    // Ngatur data user yang udah login
+    private void setupUserData() {
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String userEmail = sharedPreferences.getString("email", "");
+
+        if (!userEmail.isEmpty()) {
+            txtUserEmail.setText(userEmail);
+            txtUserEmail.setVisibility(View.GONE); // Sembunyiin email TextView
+            boolean hasRegistered = sharedPreferences.getBoolean("hasRegistered_" + userEmail, false);
+            if (hasRegistered) {
+                fetchDataByEmail(userEmail);
+            } else {
+                showNotRegisteredPopup();
+            }
+        } else {
+            Toast.makeText(this, "Email pengguna tidak ditemukan", Toast.LENGTH_SHORT).show();
+            tvStatus.setText("Status: Data tidak ditemukan");
+            clearFields();
+        }
+    }
+
+    // Ngatur tombol-tombol yang ada
+    private void setupButtonListeners() {
+        btnKembali.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);
+                startActivity(intent);
+                finish();
+            }
+        });
+    }
+
+    // Ambil data user berdasarkan email
     private void fetchDataByEmail(String email) {
         SharedPreferences userPrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean hasRegistered = userPrefs.getBoolean("hasRegistered_" + email, false);
@@ -89,6 +99,7 @@ public class Status extends AppCompatActivity {
         }
     }
 
+    // Nampilin data user yang udah diambil
     private void displayDataFromPrefs(SharedPreferences prefs, String email) {
         tvStatus.setText(getBoldText("Status: ", "Data masih tahap review"));
         tvNama.setText(getBoldText("Nama: ", prefs.getString("nama_" + email, "")));
@@ -106,6 +117,7 @@ public class Status extends AppCompatActivity {
         tvLongitude.setText(getBoldText("Longitude: ", prefs.getString("longitude_" + email, "")));
     }
 
+    // Bikin teks yang sebagian bold
     private SpannableStringBuilder getBoldText(String boldPart, String normalPart) {
         SpannableStringBuilder builder = new SpannableStringBuilder(boldPart + normalPart);
         StyleSpan boldSpan = new StyleSpan(Typeface.BOLD);
@@ -113,6 +125,7 @@ public class Status extends AppCompatActivity {
         return builder;
     }
 
+    // Bersihin semua field kalo datanya gak ada
     private void clearFields() {
         tvNama.setText("Nama: -");
         tvNik.setText("NIK: -");
@@ -129,12 +142,13 @@ public class Status extends AppCompatActivity {
         tvLongitude.setText("Longitude: -");
     }
 
+    // Nampilin popup kalo belom registrasi
     private void showNotRegisteredPopup() {
         new AlertDialog.Builder(this)
                 .setTitle("Belum Registrasi")
                 .setMessage("Anda belum melakukan registrasi")
                 .setPositiveButton("OK", (dialog, which) -> {
-                    finish(); // Kembali ke activity sebelumnya
+                    finish(); // Balik ke activity sebelumnya
                 })
                 .setCancelable(false)
                 .show();

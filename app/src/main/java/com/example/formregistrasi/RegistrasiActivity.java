@@ -1,6 +1,8 @@
 package com.example.formregistrasi;
 
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -33,7 +35,9 @@ import androidx.core.content.FileProvider;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -42,11 +46,15 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,6 +75,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private static final int REQUEST_IMAGE_CAPTURE_RUMAH = 4;
     private Uri photoUriKTP;
     private Uri photoUriRumah;
+    private ProgressDialog progressDialog;
 
     private EditText etNama, etEmail, etNik, etAlamat, etRT, etRW, etNoTelp, etKodePos, etJumlahPenghuni, etLatitude, etLongitude;
     private AutoCompleteTextView idPekerjaan, idKelurahan, idKecamatan;
@@ -81,40 +90,36 @@ public class RegistrasiActivity extends AppCompatActivity {
 
     static final String PREFS_NAME = "UserInfo";
     private static final String HAS_REGISTERED_KEY = "hasRegistered";
+    private String fotoKTPPath;
+    private String fotoRumahPath;
+    private String lineEnd;
+    private Object response;
 
-    // Method ini dipanggil ketika activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Cek apakah user udah pernah daftar sebelumnya
         if (hasUserAlreadyRegistered()) {
             Toast.makeText(this, "Anda sudah melakukan registrasi sebelumnya.", Toast.LENGTH_LONG).show();
-            finish(); // Tutup activity ini
+            finish();
             return;
         }
-        setContentView(R.layout.activity_registrasi);
 
-        try {
-            setContentView(R.layout.activity_registrasi);
-        } catch (Exception e) {
-            Log.e("RegistrasiActivity", "Error in onCreate", e);
-            Toast.makeText(this, "Terjadi kesalahan: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        }
+        setContentView(R.layout.activity_registrasi);
 
         initializeViews();
         setListeners();
         fetchDropdownData();
 
-        // Ambil data user dari intent
+        fotoKTPPath = null;
+        fotoRumahPath = null;
+
         userName = getIntent().getStringExtra("userName");
         userEmail = getIntent().getStringExtra("userEmail");
 
-        // Set nama dan email
         if (userName != null && !userName.isEmpty()) {
             etNama.setText(userName);
         } else {
-            // Kalo userName ga ada, coba ambil dari SharedPreferences
             SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
             String name = sharedPreferences.getString("name", "");
             if (!name.isEmpty()) {
@@ -122,26 +127,41 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         }
 
-        // Ambil email dari SharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         userEmail = sharedPreferences.getString("email", "");
         if (!userEmail.isEmpty()) {
             txtUserEmail.setText(userEmail);
-            txtUserEmail.setVisibility(View.GONE); // Hide the email TextView
-            etEmail.setVisibility(View.GONE); // Hide the email EditText
+            txtUserEmail.setVisibility(View.GONE);
+            etEmail.setVisibility(View.GONE);
         }
 
-        // Cek lagi apakah user udah pernah daftar
-        if (hasUserAlreadyRegistered()) {
-            Toast.makeText(this, "Anda sudah melakukan registrasi sebelumnya.", Toast.LENGTH_LONG).show();
-            finish(); // Tutup activity ini
-            return;
+        if (savedInstanceState != null) {
+            String uriKTP = savedInstanceState.getString("photoUriKTP");
+            String uriRumah = savedInstanceState.getString("photoUriRumah");
+            if (uriKTP != null) photoUriKTP = Uri.parse(uriKTP);
+            if (uriRumah != null) photoUriRumah = Uri.parse(uriRumah);
+            fotoKTPPath = savedInstanceState.getString("fotoKTPPath");
+            fotoRumahPath = savedInstanceState.getString("fotoRumahPath");
+
+            if (fotoKTPPath != null) {
+                Bitmap bitmap = BitmapFactory.decodeFile(fotoKTPPath);
+                fotoKTP.setImageBitmap(bitmap);
+                fotoKTP.setVisibility(View.VISIBLE);
+            }
+            if (fotoRumahPath != null) {
+                Bitmap bitmap = BitmapFactory.decodeFile(fotoRumahPath);
+                fotoRumah.setImageBitmap(bitmap);
+                fotoRumah.setVisibility(View.VISIBLE);
+            }
         }
 
         btnPeta.setOnClickListener(v -> openMap());
+
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Sedang mendaftarkan...");
+        progressDialog.setCancelable(false);
     }
 
-    // Method buat inisialisasi semua view yang ada di layout
     private void initializeViews() {
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
@@ -173,7 +193,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta = findViewById(R.id.btnPeta);
     }
 
-    // Method buat set listener ke semua tombol
     private void setListeners() {
         btnPickImgKTP.setOnClickListener(v -> pickImage(REQUEST_IMAGE_KTP));
         btnPickImgRumah.setOnClickListener(v -> pickImage(REQUEST_IMAGE_RUMAH));
@@ -182,125 +201,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         btnPeta.setOnClickListener(v -> checkLocationServiceAndOpenMap());
     }
 
-    // Method buat cek apakah layanan lokasi aktif dan buka peta
-    private void checkLocationServiceAndOpenMap() {
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            showLocationSettingsDialog();
-        } else {
-            openMap();
-        }
-    }
-
-    // Method buat nampilin dialog pengaturan lokasi
-    private void showLocationSettingsDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Lokasi tidak aktif");
-        builder.setMessage("Untuk menggunakan fitur ini, mohon aktifkan layanan lokasi pada perangkat Anda.");
-        builder.setPositiveButton("Pengaturan", (dialog, which) -> {
-            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivityForResult(intent, REQUEST_LOCATION);
-        });
-        builder.setNegativeButton("Batal", (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-
-    // Method buat buka activity peta
-    private void openMap() {
-        Intent intent = new Intent(this, Maps.class);
-        startActivityForResult(intent, REQUEST_CODE_MAP);
-    }
-
-    // Method buat milih gambar dari galeri
-    private void pickImage(int requestCode) {
-        Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        galleryIntent.setType("image/*");
-
-        startActivityForResult(galleryIntent, requestCode);
-    }
-
-    // Method buat ambil foto pake kamera
-    private void dispatchTakePictureIntent(boolean isKTP) {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            File photoFile = null;
-            try {
-                photoFile = createImageFile(isKTP);
-            } catch (IOException ex) {
-                Toast.makeText(this, "Error occurred while creating the file", Toast.LENGTH_SHORT).show();
-            }
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.example.formregistrasi.fileprovider",
-                        photoFile);
-                if (isKTP) {
-                    photoUriKTP = photoURI;
-                } else {
-                    photoUriRumah = photoURI;
-                }
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, isKTP ? REQUEST_IMAGE_CAPTURE_KTP : REQUEST_IMAGE_CAPTURE_RUMAH);
-            }
-        }
-    }
-
-    // Method buat bikin file gambar
-    private File createImageFile(boolean isKTP) throws IOException {
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,
-                ".jpg",
-                storageDir
-        );
-        return image;
-    }
-
-    // Method ini dipanggil ketika ada hasil dari activity lain
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case REQUEST_IMAGE_KTP:
-                case REQUEST_IMAGE_RUMAH:
-                    if (data != null && data.getData() != null) {
-                        Uri imageUri = data.getData();
-                        processImage(imageUri, requestCode == REQUEST_IMAGE_KTP);
-                    }
-                    break;
-                case REQUEST_CODE_MAP:
-                    if (data != null) {
-                        String latitude = data.getStringExtra("SELECTED_LATITUDE");
-                        String longitude = data.getStringExtra("SELECTED_LONGITUDE");
-                        if (latitude != null && longitude != null) {
-                            etLatitude.setText(latitude);
-                            etLongitude.setText(longitude);
-                        }
-                    }
-                    break;
-                case REQUEST_LOCATION:
-                    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                        openMap();
-                    } else {
-                        Toast.makeText(this, "Layanan lokasi masih tidak aktif", Toast.LENGTH_SHORT).show();
-                    }
-                    break;
-            }
-        }
-    }
-
-    // Method buat dapetin URI dari bitmap
-    private Uri getImageUri(Context context, Bitmap bitmap) {
-        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
-        String path = MediaStore.Images.Media.insertImage(context.getContentResolver(), bitmap, "Title", null);
-        return Uri.parse(path);
-    }
-
-    // Method buat ambil data dropdown dari server
     private void fetchDropdownData() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
@@ -311,7 +211,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         fetchPekerjaan();
     }
 
-    // Method buat ambil data kecamatan dari server
     private void fetchKecamatan() {
         String url = BASE_URL + "getKecamatan";
 
@@ -376,7 +275,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Method buat ambil data kelurahan berdasarkan kecamatan dari server
     private void fetchKelurahanByKecamatan(String idKecamatan) {
         String url = BASE_URL + "getKelurahanByKecamatan";
 
@@ -429,7 +327,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Method buat ambil data pekerjaan dari server
     private void fetchPekerjaan() {
         String url = BASE_URL + "getPekerjaan";
 
@@ -475,7 +372,7 @@ public class RegistrasiActivity extends AppCompatActivity {
                 }) {
             @Override
             protected Map<String, String> getParams() {
-                return new HashMap<>(); // Add any required parameters here
+                return new HashMap<>();
             }
 
             @Override
@@ -494,7 +391,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         Volley.newRequestQueue(this).add(stringRequest);
     }
 
-    // Method buat isi dropdown dengan data dari server
     private void populateDropdown(JSONArray jsonArray, AutoCompleteTextView autoCompleteTextView, String type) {
         try {
             Map<String, String> itemMap = new HashMap<>();
@@ -542,13 +438,11 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Method buat cek apakah user udah pernah daftar sebelumnya
     private boolean hasUserAlreadyRegistered() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         return prefs.getBoolean(HAS_REGISTERED_KEY + "_" + userEmail, false);
     }
 
-    // Method buat daftarin user ke server
     private void registerUser() {
         if (!checkNetworkConnection()) {
             Toast.makeText(this, "Tidak ada koneksi internet", Toast.LENGTH_SHORT).show();
@@ -556,140 +450,206 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
 
         if (!validateFields()) {
-            Toast.makeText(this, "Harap isi semua data", Toast.LENGTH_SHORT).show();
+            Log.d("RegistrasiActivity", "Validation failed");
+            Toast.makeText(this, "Harap isi semua field dengan benar", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String nomorKtp = etNik.getText().toString();
-        if (isNomorKtpAlreadyRegistered(nomorKtp)) {
-            Toast.makeText(this, "Nomor KTP sudah terdaftar. Silakan gunakan Nomor KTP lain.", Toast.LENGTH_LONG).show();
-            return;
-        }
+        Log.d("RegistrasiActivity", "All fields validated successfully");
+        progressDialog.show();
 
         String url = BASE_URL + "register";
 
-        StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
-                response -> {
-                    Log.d("RegistrasiActivity", "Registration Response: " + response);
-                    try {
-                        JSONObject jsonObject = new JSONObject(response);
-                        String status = jsonObject.getString("status");
-                        String message = jsonObject.getString("message");
+        try {
+            String boundary = "Volley-" + System.currentTimeMillis();
+            String mimeType = "multipart/form-data;boundary=" + boundary;
 
-                        if (status.equals("OK")) {
-                            Toast.makeText(getApplicationContext(), "Registrasi Anda berhasil!", Toast.LENGTH_SHORT).show();
-                            onRegistrationSuccess();
-                        } else {
-                            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Toast.makeText(getApplicationContext(), "Error parsing response: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                },
-                error -> {
-                    String errorMessage = "Error during registration: ";
-                    if (error.networkResponse != null) {
-                        errorMessage += "Status Code: " + error.networkResponse.statusCode;
-                        if (error.networkResponse.data != null) {
-                            try {
-                                String responseBody = new String(error.networkResponse.data, "utf-8");
-                                JSONObject jsonObject = new JSONObject(responseBody);
-                                errorMessage += "\nMessage: " + jsonObject.optString("message", "Unknown error");
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    } else if (error.getMessage() != null) {
-                        errorMessage += error.getMessage();
-                    } else {
-                        errorMessage += "Unknown error occurred";
-                    }
-                    Log.e("RegistrasiActivity", errorMessage);
-                    Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
-                }) {
-            @Override
-            protected Map<String, String> getParams() {
-                Map<String, String> params = new HashMap<>();
-                params.put("nama", etNama.getText().toString());
-                params.put("email", userEmail); // Use the hidden email
-                params.put("email", userEmail.isEmpty() ? etEmail.getText().toString() : userEmail);
-                params.put("nomor_ktp", etNik.getText().toString());
-                params.put("alamat", etAlamat.getText().toString());
-                params.put("rt", etRT.getText().toString());
-                params.put("rw", etRW.getText().toString());
-                params.put("telp_hp", etNoTelp.getText().toString());
-                params.put("kode_pos", etKodePos.getText().toString());
-                params.put("jumlah_penghuni", etJumlahPenghuni.getText().toString());
-                params.put("latitude", etLatitude.getText().toString());
-                params.put("longitude", etLongitude.getText().toString());
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            DataOutputStream dos = new DataOutputStream(bos);
 
-                Map<String, String> pekerjaanMap = (Map<String, String>) idPekerjaan.getTag();
-                Map<String, String> kelurahanMap = (Map<String, String>) idKelurahan.getTag();
-                Map<String, String> kecamatanMap = (Map<String, String>) idKecamatan.getTag();
+            // Add string params
+            Map<String, String> stringParams = new HashMap<>();
+            stringParams.put("nama", etNama.getText().toString());
+            stringParams.put("email", userEmail.isEmpty() ? etEmail.getText().toString() : userEmail);
+            stringParams.put("nomor_ktp", etNik.getText().toString());
+            stringParams.put("alamat", etAlamat.getText().toString());
+            stringParams.put("rt", etRT.getText().toString());
+            stringParams.put("rw", etRW.getText().toString());
+            stringParams.put("telp_hp", etNoTelp.getText().toString());
+            stringParams.put("kode_pos", etKodePos.getText().toString());
+            stringParams.put("jumlah_penghuni", etJumlahPenghuni.getText().toString());
+            stringParams.put("latitude", etLatitude.getText().toString());
+            stringParams.put("longitude", etLongitude.getText().toString());
 
-                params.put("id_pekerjaan", pekerjaanMap.get(idPekerjaan.getText().toString()));
-                params.put("id_kelurahan", kelurahanMap.get(idKelurahan.getText().toString()));
-                params.put("id_kecamatan", kecamatanMap.get(idKecamatan.getText().toString()));
+            Map<String, String> pekerjaanMap = (Map<String, String>) idPekerjaan.getTag();
+            Map<String, String> kelurahanMap = (Map<String, String>) idKelurahan.getTag();
+            Map<String, String> kecamatanMap = (Map<String, String>) idKecamatan.getTag();
 
-                params.put("foto_ktp", "data:image/jpeg;base64," + fotoKTPBase64);
-                params.put("foto_lokasi", "data:image/jpeg;base64," + fotoRumahBase64);
-                return params;
+            stringParams.put("id_pekerjaan", pekerjaanMap.get(idPekerjaan.getText().toString()));
+            stringParams.put("id_kelurahan", kelurahanMap.get(idKelurahan.getText().toString()));
+            stringParams.put("id_kecamatan", kecamatanMap.get(idKecamatan.getText().toString()));
+
+            for (Map.Entry<String, String> entry : stringParams.entrySet()) {
+                buildTextPart(dos, boundary, entry.getKey(), entry.getValue());
             }
-        };
 
-        // Set retry policy
-        stringRequest.setRetryPolicy(new DefaultRetryPolicy(
-                30000,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+            // Add image parts
+            buildFilePart(dos, boundary, "foto_ktp", fotoKTPPath);
+            buildFilePart(dos, boundary, "foto_lokasi", fotoRumahPath);
 
-        Volley.newRequestQueue(this).add(stringRequest);
-        onRegistrationSuccess();
+            // End of multipart/form-data
+            dos.writeBytes("--" + boundary + "--" + lineEnd);
+
+            MultipartRequest multipartRequest = new MultipartRequest(
+                    url,
+                    null, // headers
+                    mimeType,
+                    bos.toByteArray(),
+                    response -> {
+                        progressDialog.dismiss();
+                        handleRegistrationResponse(response);
+                    },
+                    error -> {
+                        progressDialog.dismiss();
+                        handleRegistrationError(error);
+                    }
+            );
+
+            multipartRequest.setRetryPolicy(new DefaultRetryPolicy(
+                    30000,
+                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+            Volley.newRequestQueue(this).add(multipartRequest);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            progressDialog.dismiss();
+            Toast.makeText(getApplicationContext(), "Error preparing request: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
-    // Method buat cek apakah NIK udah pernah didaftarin sebelumnya
-    private boolean isNomorKtpAlreadyRegistered(String nomorKtp) {
-        SharedPreferences prefs = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
-        return prefs.contains(nomorKtp);
+    private void handleRegistrationResponse(NetworkResponse response) {
+        try {
+            String responseBody = new String(response.data, StandardCharsets.UTF_8);
+            Log.d("RegistrasiActivity", "Raw server response: " + responseBody);
+            JSONObject jsonObject = new JSONObject(responseBody);
+
+            if (jsonObject.has("success")) {
+                boolean success = jsonObject.getBoolean("success");
+                String message = jsonObject.optString("message", "No message provided");
+
+                if (success) {
+                    Toast.makeText(getApplicationContext(), "Registrasi Anda berhasil!", Toast.LENGTH_SHORT).show();
+                    onRegistrationSuccess();
+                } else {
+                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(getApplicationContext(), "Unexpected server response", Toast.LENGTH_SHORT).show();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(), "Error parsing response: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
-    // Method buat validasi semua field
+    private void handleRegistrationError(VolleyError error) {
+        String errorMessage = "Error during registration: ";
+        if (error.networkResponse != null) {
+            errorMessage += "Status Code: " + error.networkResponse.statusCode;
+            if (error.networkResponse.data != null) {
+                try {
+                    String responseBody = new String(error.networkResponse.data, StandardCharsets.UTF_8);
+                    Log.d("RegistrasiActivity", "Error response: " + responseBody);
+                    JSONObject jsonObject = new JSONObject(responseBody);
+                    if (jsonObject.has("message")) {
+                        errorMessage = jsonObject.getString("message");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    errorMessage += "\nError parsing error response: " + e.getMessage();
+                }
+            }
+        } else if (error.getMessage() != null) {
+            errorMessage += error.getMessage();
+        } else {
+            errorMessage += "Unknown error occurred";
+        }
+        Log.e("RegistrasiActivity", errorMessage);
+        Toast.makeText(getApplicationContext(), errorMessage, Toast.LENGTH_LONG).show();
+    }
+
+    private void buildTextPart(DataOutputStream dataOutputStream, String boundary, String parameterName, String parameterValue) throws IOException {
+        dataOutputStream.writeBytes("--" + boundary + "\r\n");
+        dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"" + parameterName + "\"\r\n");
+        dataOutputStream.writeBytes("\r\n");
+        dataOutputStream.writeBytes(parameterValue + "\r\n");
+    }
+
+    private void buildFilePart(DataOutputStream dataOutputStream, String boundary, String parameterName, String fileName) throws IOException {
+        dataOutputStream.writeBytes("--" + boundary + "\r\n");
+        dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"" + parameterName + "\"; filename=\"" + fileName + "\"\r\n");
+        dataOutputStream.writeBytes("Content-Type: image/jpeg\r\n");
+        dataOutputStream.writeBytes("\r\n");
+
+        FileInputStream fileInputStream = new FileInputStream(fileName);
+        int bytesAvailable = fileInputStream.available();
+        int bufferSize = Math.min(bytesAvailable, 1024 * 1024);
+        byte[] buffer = new byte[bufferSize];
+
+        int bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        while (bytesRead > 0) {
+            dataOutputStream.write(buffer, 0, bytesRead);
+            bytesAvailable = fileInputStream.available();
+            bufferSize = Math.min(bytesAvailable, 1024 * 1024);
+            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        }
+
+        dataOutputStream.writeBytes("\r\n");
+        fileInputStream.close();
+    }
+
     private boolean validateFields() {
-        if (etNama.getText().toString().isEmpty() ||
-                etNik.getText().toString().isEmpty() ||
-                etNik.getText().toString().length() != 16 || // Membatasi agar nomor nik diisi sejumlah 16 digit
-                etAlamat.getText().toString().isEmpty() ||
-                etRT.getText().toString().isEmpty() ||
-                etRW.getText().toString().isEmpty() ||
-                etNoTelp.getText().toString().isEmpty() ||
-                etKodePos.getText().toString().isEmpty() ||
-                etJumlahPenghuni.getText().toString().isEmpty() ||
-                etLatitude.getText().toString().isEmpty() ||
-                etLongitude.getText().toString().isEmpty() ||
-                idPekerjaan.getText().toString().isEmpty() ||
-                idKelurahan.getText().toString().isEmpty() ||
-                idKecamatan.getText().toString().isEmpty() ||
-                fotoKTPBase64 == null ||
-                fotoRumahBase64 == null) {
-            Toast.makeText(this, "Harap isi semua field dengan benar", Toast.LENGTH_SHORT).show();
+        if (etNama.getText().toString().trim().isEmpty() ||
+                etNik.getText().toString().trim().isEmpty() ||
+                etNik.getText().toString().trim().length() != 16 ||
+                etAlamat.getText().toString().trim().isEmpty() ||
+                etRT.getText().toString().trim().isEmpty() ||
+                etRW.getText().toString().trim().isEmpty() ||
+                etNoTelp.getText().toString().trim().isEmpty() ||
+                etKodePos.getText().toString().trim().isEmpty() ||
+                etJumlahPenghuni.getText().toString().trim().isEmpty() ||
+                etLatitude.getText().toString().trim().isEmpty() ||
+                etLongitude.getText().toString().trim().isEmpty() ||
+                idPekerjaan.getText().toString().trim().isEmpty() ||
+                idKelurahan.getText().toString().trim().isEmpty() ||
+                idKecamatan.getText().toString().trim().isEmpty() ||
+                fotoKTPPath == null ||
+                fotoRumahPath == null) {
             return false;
         }
         return true;
     }
 
-    // Method buat proses gambar yang dipilih
     private void processImage(Uri imageUri, boolean isKTP) {
         try {
             InputStream imageStream = getContentResolver().openInputStream(imageUri);
             Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-            String encodedImage = encodeImageToBase64(selectedImage);
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            selectedImage.compress(Bitmap.CompressFormat.JPEG, 50, byteArrayOutputStream);
+            byte[] byteArray = byteArrayOutputStream.toByteArray();
+
+            String fileName = isKTP ? "ktp_" + System.currentTimeMillis() + ".jpg" : "rumah_" + System.currentTimeMillis() + ".jpg";
+            String imagePath = saveImageToInternalStorage(BitmapFactory.decodeByteArray(byteArray, 0, byteArray.length), fileName);
+
             if (isKTP) {
-                fotoKTPBase64 = encodedImage;
+                fotoKTPPath = imagePath;
                 fotoKTP.setImageBitmap(selectedImage);
                 fotoKTP.setVisibility(View.VISIBLE);
             } else {
-                fotoRumahBase64 = encodedImage;
+                fotoRumahPath = imagePath;
                 fotoRumah.setImageBitmap(selectedImage);
                 fotoRumah.setVisibility(View.VISIBLE);
             }
@@ -699,46 +659,38 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
     }
 
-    // Method buat ngubah gambar jadi string base64
     private String encodeImageToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream);
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    // Method buat cek koneksi internet
     private boolean checkNetworkConnection() {
         ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         return networkInfo != null && networkInfo.isConnected();
     }
 
-    // Method buat handle tombol kembali
     public void btnKembali(View view) {
         Intent intent = new Intent(RegistrasiActivity.this, IndexPendaftaranLogin.class);
         startActivity(intent);
     }
 
-    // Method yang dipanggil setelah registrasi berhasil
     private void onRegistrationSuccess() {
         SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
         SharedPreferences.Editor editor = userPrefs.edit();
 
         String userEmail = userPrefs.getString("email", "");
 
-        // Tambahkan nomor KTP ke daftar yang sudah terdaftar
         String nomorKtp = etNik.getText().toString();
         SharedPreferences allNomorKTP = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
         SharedPreferences.Editor ktpEditor = allNomorKTP.edit();
         ktpEditor.putString(nomorKtp, userEmail);
         ktpEditor.apply();
 
-
-        // Simpan status registrasi berdasarkan email
         editor.putBoolean(HAS_REGISTERED_KEY + "_" + userEmail, true);
 
-        // Simpan semua data registrasi dengan prefix email
         editor.putString("nama_" + userEmail, etNama.getText().toString());
         editor.putString("nomor_ktp_" + userEmail, etNik.getText().toString());
         editor.putString("alamat_" + userEmail, etAlamat.getText().toString());
@@ -750,12 +702,10 @@ public class RegistrasiActivity extends AppCompatActivity {
         editor.putString("latitude_" + userEmail, etLatitude.getText().toString());
         editor.putString("longitude_" + userEmail, etLongitude.getText().toString());
 
-        // Simpan data dropdown
         editor.putString("pekerjaan_" + userEmail, idPekerjaan.getText().toString());
         editor.putString("kelurahan_" + userEmail, idKelurahan.getText().toString());
         editor.putString("kecamatan_" + userEmail, idKecamatan.getText().toString());
 
-        // Simpan ID dari dropdown (jika diperlukan)
         Map<String, String> pekerjaanMap = (Map<String, String>) idPekerjaan.getTag();
         Map<String, String> kelurahanMap = (Map<String, String>) idKelurahan.getTag();
         Map<String, String> kecamatanMap = (Map<String, String>) idKecamatan.getTag();
@@ -764,30 +714,31 @@ public class RegistrasiActivity extends AppCompatActivity {
         editor.putString("id_kelurahan_" + userEmail, kelurahanMap.get(idKelurahan.getText().toString()));
         editor.putString("id_kecamatan_" + userEmail, kecamatanMap.get(idKecamatan.getText().toString()));
 
-        // Simpan base64 dari foto KTP dan foto rumah
         editor.putString("foto_ktp_" + userEmail, fotoKTPBase64);
         editor.putString("foto_rumah_" + userEmail, fotoRumahBase64);
 
-        // Terapkan perubahan
         editor.apply();
 
-        // Tampilkan pesan sukses
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
 
-        // Siapkan intent untuk pindah ke halaman Status
         Intent intent = new Intent(RegistrasiActivity.this, Status.class);
         intent.putExtra("NIK", etNik.getText().toString());
         intent.putExtra("REGISTERED", true);
 
-        // Tambahkan flag untuk membersihkan stack activity
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 
-        // Pindah ke halaman Status
         startActivity(intent);
         finish();
     }
 
-    // Method buat bikin filter yang cuma nerima huruf dan spasi
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
+    }
+
     private InputFilter getTextOnlyFilter() {
         return new InputFilter() {
             @Override
@@ -802,5 +753,145 @@ public class RegistrasiActivity extends AppCompatActivity {
         };
     }
 
+    private void checkLocationServiceAndOpenMap() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            showLocationSettingsDialog();
+        } else {
+            openMap();
+        }
+    }
 
+    private void showLocationSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Lokasi tidak aktif");
+        builder.setMessage("Untuk menggunakan fitur ini, mohon aktifkan layanan lokasi pada perangkat Anda.");
+        builder.setPositiveButton("Pengaturan", (dialog, which) -> {
+            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            startActivityForResult(intent, REQUEST_LOCATION);
+        });
+        builder.setNegativeButton("Batal", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void openMap() {
+        Intent intent = new Intent(this, Maps.class);
+        startActivityForResult(intent, REQUEST_CODE_MAP);
+    }
+
+    private void pickImage(int requestCode) {
+        Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        galleryIntent.setType("image/*");
+
+        startActivityForResult(galleryIntent, requestCode);
+    }
+
+    private void dispatchTakePictureIntent(boolean isKTP) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile(isKTP);
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error occurred while creating the file", Toast.LENGTH_SHORT).show();
+            }
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.formregistrasi.fileprovider",
+                        photoFile);
+                if (isKTP) {
+                    photoUriKTP = photoURI;
+                } else {
+                    photoUriRumah = photoURI;
+                }
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, isKTP ? REQUEST_IMAGE_CAPTURE_KTP : REQUEST_IMAGE_CAPTURE_RUMAH);
+            }
+        }
+    }
+
+    private File createImageFile(boolean isKTP) throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,
+                ".jpg",
+                storageDir
+        );
+        return image;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_IMAGE_KTP:
+                case REQUEST_IMAGE_RUMAH:
+                    if (data != null && data.getData() != null) {
+                        Uri imageUri = data.getData();
+                        processImage(imageUri, requestCode == REQUEST_IMAGE_KTP);
+                    }
+                    break;
+                case REQUEST_CODE_MAP:
+                    if (data != null) {
+                        String latitude = data.getStringExtra("SELECTED_LATITUDE");
+                        String longitude = data.getStringExtra("SELECTED_LONGITUDE");
+                        if (latitude != null && longitude != null) {
+                            etLatitude.setText(latitude);
+                            etLongitude.setText(longitude);
+                        }
+                    }
+                    break;
+                case REQUEST_LOCATION:
+                    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        openMap();
+                    } else {
+                        Toast.makeText(this, "Layanan lokasi masih tidak aktif", Toast.LENGTH_SHORT).show();
+                    }
+                    break;
+            }
+        }
+    }
+
+    private Uri getImageUri(Context context, Bitmap bitmap) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bytes);
+        String path = MediaStore.Images.Media.insertImage(context.getContentResolver(), bitmap, "Title", null);
+        return Uri.parse(path);
+    }
+
+    private String saveImageToInternalStorage(Bitmap bitmap, String fileName) {
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File directory = cw.getDir("images", Context.MODE_PRIVATE);
+        File file = new File(directory, fileName);
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (fos != null) {
+                    fos.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return file.getAbsolutePath();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (photoUriKTP != null) outState.putString("photoUriKTP", photoUriKTP.toString());
+        if (photoUriRumah != null) outState.putString("photoUriRumah", photoUriRumah.toString());
+        outState.putString("fotoKTPPath", fotoKTPPath);
+        outState.putString("fotoRumahPath", fotoRumahPath);
+    }
 }

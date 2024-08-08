@@ -190,9 +190,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Longitude"
-            android:layout_marginBottom="8dp"
             android:textSize="15sp"
             android:textColor="@color/black"
+            android:layout_marginBottom="16dp"
             />
 
         <TextView
@@ -204,7 +204,7 @@
             android:textAlignment="center"
             android:text="Status"
             android:textColor="#C51F01"
-            android:layout_marginBottom="16dp"/>
+            />
 
     </LinearLayout>
 
