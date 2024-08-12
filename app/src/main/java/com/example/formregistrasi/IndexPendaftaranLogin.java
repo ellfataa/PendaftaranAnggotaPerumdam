@@ -87,9 +87,14 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         if (!userEmail.isEmpty()) {
             boolean hasRegistered = sharedPreferences.getBoolean(HAS_REGISTERED_KEY + "_" + userEmail, false);
             if (hasRegistered) {
-                Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
-                intent.putExtra("USER_EMAIL", userEmail);
-                startActivity(intent);
+                String nomorKtp = sharedPreferences.getString("nomor_ktp_" + userEmail, "");
+                if (!nomorKtp.isEmpty()) {
+                    Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
+                    intent.putExtra("NOMOR_KTP", nomorKtp);
+                    startActivity(intent);
+                } else {
+                    showAlert("Nomor KTP tidak ditemukan");
+                }
             } else {
                 showAlert("Anda belum melakukan registrasi");
             }

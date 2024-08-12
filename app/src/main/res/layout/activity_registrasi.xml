@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="1dp"
+    android:padding="5dp"
     android:background="@drawable/bgindex3"
     tools:context=".RegistrasiActivity">
 
@@ -24,7 +24,7 @@
                 android:layout_height="wrap_content"
                 android:text="kembali"
                 android:textColor="@color/black"
-                android:background="@color/transparent"
+                android:backgroundTint="@color/orangeyoung"
                 android:textStyle="bold"
                 android:textSize="15sp"
                 android:onClick="btnKembali"

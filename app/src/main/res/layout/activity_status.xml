@@ -24,7 +24,7 @@
                 android:layout_height="wrap_content"
                 android:text="kembali"
                 android:textColor="@color/black"
-                android:background="@color/transparent"
+                android:backgroundTint="@color/orangeyoung"
                 android:textStyle="bold"
                 android:textSize="15sp"
                 android:onClick="btnKembali"
@@ -195,6 +195,55 @@
             android:layout_marginBottom="16dp"
             />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/tvBiaya"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Biaya Registrasi"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="8dp"
+            />
+
+        <TextView
+            android:id="@+id/tvToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Token Pembayaran"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="8dp"
+            />
+
+        <TextView
+            android:id="@+id/tvStatusBiaya"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status Pembayaran"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="10dp"
+            />
+
+        <Button
+            android:id="@+id/btnBuktiBayar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Upload Bukti Pembayaran Registrasi"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/purple_500"
+            android:textStyle="bold"
+            android:textSize="12sp"
+            android:onClick="btnBuktiBayar"
+            android:layout_marginBottom="10dp"
+            />
+
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="match_parent"
@@ -205,6 +254,13 @@
             android:text="Status"
             android:textColor="#C51F01"
             />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:visibility="gone" />
 
     </LinearLayout>
 

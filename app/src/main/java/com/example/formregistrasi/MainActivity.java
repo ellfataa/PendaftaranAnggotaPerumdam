@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String URL_LOGIN = "http://192.168.230.84/registrasi-pelanggan/public/api/login";
     private static final int RC_SIGN_IN = 1000;
 
+    private SessionManager sessionManager;
     private ImageView logo, google_btn;
     private TextView txt_masuk, daftarText;
     private Button btn_masuk;
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setContentView(R.layout.activity_main);
+        sessionManager = new SessionManager(this);
 
         initializeViews();
         setupProgressDialog();
@@ -156,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
-    // Nangani respon dari server setelah login
     private void handleLoginResponse(String response) {
         progressDialog.dismiss();
         Log.d(TAG, "Server Response: " + response);
@@ -169,9 +170,14 @@ public class MainActivity extends AppCompatActivity {
                 String name = userObject.getString("name");
                 String token = jsonObject.getString("token");
 
-                saveUserInfo(email, name, token);
-
+                // Simpan informasi user dan token
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString(EMAIL_KEY, email);
+                editor.putString(NAME_KEY, name);
+                editor.putString(TOKEN_KEY, token);
+                editor.apply();
+
                 boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
 
                 showSuccessDialog(name, hasRegistered);
@@ -190,20 +196,35 @@ public class MainActivity extends AppCompatActivity {
     private void handleLoginError(VolleyError error) {
         progressDialog.dismiss();
         Log.e(TAG, "Volley Error: " + error.toString());
-        String errorMessage = "Gagal terhubung ke server. ";
-        if (error.networkResponse != null) {
-            errorMessage += "Status code: " + error.networkResponse.statusCode;
-            if (error.networkResponse.data != null) {
-                try {
-                    String responseBody = new String(error.networkResponse.data, "utf-8");
-                    JSONObject jsonObject = new JSONObject(responseBody);
-                    errorMessage += "\n" + jsonObject.optString("message", "Unknown error occurred");
-                } catch (Exception e) {
-                    e.printStackTrace();
+        String errorMessage;
+
+        if (error.networkResponse != null && error.networkResponse.statusCode == 401) {
+            errorMessage = "Password salah atau tidak sesuai";
+            showErrorDialog(errorMessage);
+        } else {
+            errorMessage = "Gagal terhubung ke server. ";
+            if (error.networkResponse != null) {
+                errorMessage += "Status code: " + error.networkResponse.statusCode;
+                if (error.networkResponse.data != null) {
+                    try {
+                        String responseBody = new String(error.networkResponse.data, "utf-8");
+                        JSONObject jsonObject = new JSONObject(responseBody);
+                        errorMessage += "\n" + jsonObject.optString("message", "Unknown error occurred");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
+            Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
         }
-        Toast.makeText(MainActivity.this, errorMessage, Toast.LENGTH_LONG).show();
+    }
+
+    private void showErrorDialog(String message) {
+        new AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage(message)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     // Nyimpen info user ke SharedPreferences

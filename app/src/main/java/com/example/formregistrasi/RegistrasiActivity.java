@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.LocationManager;
@@ -27,10 +28,14 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.Manifest;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.android.volley.AuthFailureError;
@@ -73,6 +78,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private static final int REQUEST_IMAGE_RUMAH = 2;
     private static final int REQUEST_IMAGE_CAPTURE_KTP = 3;
     private static final int REQUEST_IMAGE_CAPTURE_RUMAH = 4;
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 100;
     private Uri photoUriKTP;
     private Uri photoUriRumah;
     private ProgressDialog progressDialog;
@@ -722,7 +728,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
 
         Intent intent = new Intent(RegistrasiActivity.this, Status.class);
-        intent.putExtra("NIK", etNik.getText().toString());
+        intent.putExtra("NOMOR_KTP", etNik.getText().toString());
         intent.putExtra("REGISTERED", true);
 
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -780,10 +786,58 @@ public class RegistrasiActivity extends AppCompatActivity {
     }
 
     private void pickImage(int requestCode) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+        } else {
+            launchImagePicker(requestCode);
+        }
+    }
+
+    private void launchImagePicker(int requestCode) {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryIntent.setType("image/*");
 
-        startActivityForResult(galleryIntent, requestCode);
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
+            File photoFile = null;
+            try {
+                photoFile = createImageFile(requestCode == REQUEST_IMAGE_KTP);
+            } catch (IOException ex) {
+                Toast.makeText(this, "Error creating image file", Toast.LENGTH_SHORT).show();
+            }
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.formregistrasi.fileprovider",
+                        photoFile);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+
+                if (requestCode == REQUEST_IMAGE_KTP) {
+                    photoUriKTP = photoURI;
+                } else {
+                    photoUriRumah = photoURI;
+                }
+            }
+        }
+
+        Intent chooserIntent = Intent.createChooser(galleryIntent, "Select Image");
+        chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
+
+        startActivityForResult(chooserIntent, requestCode);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Izin diberikan, lanjutkan dengan membuka pemilih gambar
+                launchImagePicker(REQUEST_IMAGE_KTP); // atau REQUEST_IMAGE_RUMAH, tergantung konteks
+            } else {
+                // Izin ditolak, beri tahu pengguna
+                Toast.makeText(this, "Izin kamera diperlukan untuk mengambil foto", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void dispatchTakePictureIntent(boolean isKTP) {
@@ -829,10 +883,15 @@ public class RegistrasiActivity extends AppCompatActivity {
             switch (requestCode) {
                 case REQUEST_IMAGE_KTP:
                 case REQUEST_IMAGE_RUMAH:
+                    Uri imageUri;
                     if (data != null && data.getData() != null) {
-                        Uri imageUri = data.getData();
-                        processImage(imageUri, requestCode == REQUEST_IMAGE_KTP);
+                        // Gallery result
+                        imageUri = data.getData();
+                    } else {
+                        // Camera result
+                        imageUri = (requestCode == REQUEST_IMAGE_KTP) ? photoUriKTP : photoUriRumah;
                     }
+                    processImage(imageUri, requestCode == REQUEST_IMAGE_KTP);
                     break;
                 case REQUEST_CODE_MAP:
                     if (data != null) {

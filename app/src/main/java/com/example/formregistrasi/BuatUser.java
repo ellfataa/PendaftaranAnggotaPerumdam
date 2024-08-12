@@ -2,6 +2,7 @@ package com.example.formregistrasi;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.util.Log;
@@ -37,6 +38,8 @@ public class BuatUser extends AppCompatActivity {
 
     private static final String TAG = "BuatUser";
     private static final String REGISTER_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/register-user";
+    private static final String PREFS_NAME = "UserInfo";
+    private static final String TOKEN_KEY = "token";
 
     private EditText namaLengkap, emailAkun, password, konfirmasiPassword;
     private RequestQueue requestQueue;
@@ -125,33 +128,7 @@ public class BuatUser extends AppCompatActivity {
         StringRequest stringRequest = new StringRequest(Request.Method.POST, REGISTER_URL,
                 response -> {
                     progressDialog.dismiss();
-                    Log.d(TAG, "Server Response: " + response);
-                    try {
-                        JSONObject jsonObject = new JSONObject(response);
-                        boolean success = jsonObject.getBoolean("success");
-                        if (success) {
-                            StringBuilder messageBuilder = new StringBuilder("Registrasi berhasil");
-                            if (jsonObject.has("user")) {
-                                JSONObject userObject = jsonObject.getJSONObject("user");
-                                String name = userObject.optString("name", "");
-                                String userEmail = userObject.optString("email", "");
-                                if (!name.isEmpty()) {
-                                    messageBuilder.append(" untuk ").append(name);
-                                }
-                                if (!userEmail.isEmpty()) {
-                                    messageBuilder.append(" (").append(userEmail).append(")");
-                                }
-                            }
-                            showSuccessDialog(messageBuilder.toString());
-                        } else {
-                            String message = jsonObject.optString("message", "Registrasi gagal");
-                            Toast.makeText(BuatUser.this, message, Toast.LENGTH_SHORT).show();
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Log.e(TAG, "JSON Error: " + e.getMessage() + ", Response: " + response);
-                        Toast.makeText(BuatUser.this, "Terjadi kesalahan saat memproses respons server", Toast.LENGTH_SHORT).show();
-                    }
+                    handleRegistrationResponse(response);
                 },
                 error -> {
                     progressDialog.dismiss();
@@ -166,14 +143,6 @@ public class BuatUser extends AppCompatActivity {
                 params.put("password_confirmation", konfirmasiPasswordAkun);
                 return params;
             }
-
-            @Override
-            public Map<String, String> getHeaders() throws AuthFailureError {
-                Map<String, String> headers = new HashMap<>();
-                headers.put("Accept", "application/json");
-                headers.put("Content-Type", "application/x-www-form-urlencoded");
-                return headers;
-            }
         };
 
         stringRequest.setRetryPolicy(new DefaultRetryPolicy(
@@ -181,7 +150,50 @@ public class BuatUser extends AppCompatActivity {
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
+        RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
+    }
+
+    private void handleRegistrationResponse(String response) {
+        Log.d(TAG, "Server Response: " + response);
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            boolean success = jsonObject.getBoolean("success");
+            if (success) {
+                String token = jsonObject.optString("token", "");
+                if (!token.isEmpty()) {
+                    // Simpan token
+                    SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString(TOKEN_KEY, token);
+                    editor.apply();
+                }
+
+                JSONObject userObject = jsonObject.optJSONObject("user");
+                if (userObject != null) {
+                    String name = userObject.optString("name", "");
+                    String userEmail = userObject.optString("email", "");
+
+                    StringBuilder messageBuilder = new StringBuilder("Registrasi berhasil");
+                    if (!name.isEmpty()) {
+                        messageBuilder.append(" untuk ").append(name);
+                    }
+                    if (!userEmail.isEmpty()) {
+                        messageBuilder.append(" (").append(userEmail).append(")");
+                    }
+                    showSuccessDialog(messageBuilder.toString());
+                } else {
+                    showSuccessDialog("Registrasi berhasil");
+                }
+            } else {
+                String message = jsonObject.optString("message", "Registrasi gagal");
+                Toast.makeText(BuatUser.this, message, Toast.LENGTH_SHORT).show();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            Log.e(TAG, "JSON Error: " + e.getMessage() + ", Response: " + response);
+            Toast.makeText(BuatUser.this, "Terjadi kesalahan saat memproses respons server", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void handleNetworkError(VolleyError error) {

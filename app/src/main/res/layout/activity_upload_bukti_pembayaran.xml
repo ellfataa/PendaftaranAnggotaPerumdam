@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="25dp"
+    android:background="@drawable/bgindex3"
+    tools:context=".UploadBuktiPembayaran">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Button
+                android:id="@+id/btnKembali"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="kembali"
+                android:textColor="@color/black"
+                android:backgroundTint="@color/orangeyoung"
+                android:textStyle="bold"
+                android:textSize="15sp"
+                android:onClick="btnKembali"
+                />
+
+            <TextView
+                android:id="@+id/txtUserEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                android:layout_alignParentStart="true"
+                android:layout_centerInParent="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:visibility="gone"
+                />
+
+            <ImageView
+                android:id="@+id/logo"
+                android:layout_width="140dp"
+                android:layout_height="56dp"
+                android:layout_alignParentEnd="true"
+                android:src="@drawable/logopdam" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/txt_register"
+            android:layout_below="@+id/logo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Upload Bukti Pembayaran Registrasi"
+            android:textAlignment="center"
+            android:layout_centerInParent="true"
+            android:layout_alignParentTop="true"
+            android:textSize="30sp"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Bukti Pembayaran"
+            android:textSize="20sp"
+            android:textColor="@color/black"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp" />
+
+        <ImageView
+            android:id="@+id/fotoBukti"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="10dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.120000005"
+            tools:srcCompat="@tools:sample/avatars"
+            />
+
+        <Button
+            android:id="@+id/btnPickImgBukti"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Upload Foto Bukti Pembayaran"
+            android:backgroundTint="@color/green"
+            app:layout_constraintEnd_toEndOf="@+id/fotoBukti"
+            app:layout_constraintStart_toStartOf="@+id/fotoBukti"
+            app:layout_constraintTop_toTopOf="@+id/fotoBukti" />
+
+        <Button
+            android:id="@+id/btnKirim"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Kirim"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:backgroundTint="@color/bluesky"
+            android:layout_marginTop="10dp"
+            android:onClick="kirim" />
+
+    </LinearLayout>
+
+</ScrollView>
