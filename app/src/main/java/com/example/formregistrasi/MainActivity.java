@@ -170,6 +170,8 @@ public class MainActivity extends AppCompatActivity {
                 String name = userObject.getString("name");
                 String token = jsonObject.getString("token");
 
+                sessionManager.saveToken(token);
+
                 // Simpan informasi user dan token
                 SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
                 SharedPreferences.Editor editor = prefs.edit();

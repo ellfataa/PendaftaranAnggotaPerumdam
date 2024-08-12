@@ -154,15 +154,6 @@ public class Status extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
-        if (nomorKtp != null && !nomorKtp.isEmpty()) {
-            fetchRegistrationDetails(nomorKtp);
-        }
-    }
-
     private void updateUI(JSONObject data) {
         try {
             JSONObject registrasi = data.getJSONObject("registrasi");
@@ -239,6 +230,22 @@ public class Status extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
+        String newStatus = getIntent().getStringExtra("STATUS_PEMBAYARAN");
+
+        if (nomorKtp != null && !nomorKtp.isEmpty()) {
+            if (newStatus != null && newStatus.equals("ditinjau")) {
+                // Update UI immediately for the new status
+                tvStatusBiaya.setText("Status Pembayaran: Pembayaran masih ditinjau");
+                btnBuktiBayar.setVisibility(View.GONE);
+            }
+            // Fetch the latest details from the server
+            fetchRegistrationDetails(nomorKtp);
+        }
+    }
 
     public void btnKembali(View view) {
         Intent intent = new Intent(Status.this, IndexPendaftaranLogin.class);

@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -23,25 +24,30 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
+import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class UploadBuktiPembayaran extends AppCompatActivity {
 
@@ -54,11 +60,14 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     private String nomorKtp;
     private Uri photoUriBukti;
     private String fotoBuktiPath;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_upload_bukti_pembayaran);
+
+        sessionManager = new SessionManager(this);
 
         initializeViews();
         setListeners();
@@ -81,7 +90,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     private void setListeners() {
         btnPickImgBukti.setOnClickListener(v -> pickImage());
         btnKirim.setOnClickListener(v -> kirim());
-        btnKembali.setOnClickListener(v -> navigateToStatus());
+        btnKembali.setOnClickListener(v -> navigateToStatus(null));
     }
 
     private void pickImage() {
@@ -178,47 +187,96 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         return file.getAbsolutePath();
     }
 
-    public void kirim() {
+    private void kirim() {
         if (fotoBuktiPath == null) {
             Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String url = "http://192.168.230.84/registrasi-pelanggan/public/api/upload-bukti-bayar";
-
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-
-        try {
-            // Add string params
-            buildTextPart(dos, "nomor_ktp", nomorKtp);
-
-            // Add image part
-            buildFilePart(dos, "foto_bukti_bayar", fotoBuktiPath);
-
-            // End of multipart/form-data
-            dos.writeBytes("--" + boundary + "--" + lineEnd);
-        } catch (IOException e) {
-            e.printStackTrace();
+        String token = sessionManager.getToken();
+        if (token.isEmpty()) {
+            Toast.makeText(this, "Authentication token is missing. Please log in again.", Toast.LENGTH_LONG).show();
+            navigateToLogin();
+            return;
         }
 
-        byte[] multipartBody = bos.toByteArray();
+        if (sessionManager.isTokenExpired()) {
+            refreshTokenAndRetry();
+            return;
+        }
 
-        MultipartRequest multipartRequest = new MultipartRequest(
-                url,
-                null,
-                "multipart/form-data; boundary=" + boundary,
-                multipartBody,
-                response -> handleUploadResponse(response),
-                this::handleUploadError
-        );
+        String url = "http://192.168.230.84/registrasi-pelanggan/public/api/upload-bukti-bayar";
+        Log.d("Upload", "Starting upload to URL: " + url);
+
+        VolleyMultipartRequest multipartRequest = new VolleyMultipartRequest(Request.Method.POST, url,
+                this::handleUploadResponse,
+                this::handleUploadError) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("nomor_ktp", nomorKtp);
+                Log.d("Upload", "Params: " + params.toString());
+                return params;
+            }
+
+            @Override
+            protected Map<String, DataPart> getByteData() {
+                Map<String, DataPart> params = new HashMap<>();
+                long imageName = System.currentTimeMillis();
+                params.put("foto_bukti_bayar", new DataPart(imageName + ".jpg", getFileDataFromPath(fotoBuktiPath)));
+                Log.d("Upload", "ByteData: foto_bukti_bayar added");
+                return params;
+            }
+
+            @Override
+            public Map<String, String> getHeaders() throws AuthFailureError {
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Accept", "application/json");
+                String token = sessionManager.getToken();
+                if (!token.isEmpty()) {
+                    headers.put("Authorization", "Bearer " + token);
+                    Log.d("Upload", "Authorization header: Bearer " + token);
+                } else {
+                    Log.d("Upload", "No token available for Authorization header");
+                }
+                return headers;
+            }
+        };
 
         multipartRequest.setRetryPolicy(new DefaultRetryPolicy(
                 30000,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
+        Log.d("Upload", "Adding request to queue");
         Volley.newRequestQueue(this).add(multipartRequest);
+    }
+
+    private String getAuthToken() {
+        if (sessionManager != null) {
+            String token = sessionManager.getToken();
+            if (token.isEmpty()) {
+                Log.d("UploadBuktiPembayaran", "Token is empty");
+            }
+            return token;
+        } else {
+            Log.e("UploadBuktiPembayaran", "SessionManager is null");
+            return "";
+        }
+    }
+
+    private byte[] getFileDataFromPath(String path) {
+        File file = new File(path);
+        int size = (int) file.length();
+        byte[] bytes = new byte[size];
+        try {
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+            buf.read(bytes, 0, bytes.length);
+            buf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return bytes;
     }
 
     private void handleUploadResponse(NetworkResponse response) {
@@ -230,7 +288,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
 
             if (success) {
                 Toast.makeText(UploadBuktiPembayaran.this, "Bukti pembayaran terkirim", Toast.LENGTH_SHORT).show();
-                navigateToStatus();
+                navigateToStatus("ditinjau");
             } else {
                 Toast.makeText(UploadBuktiPembayaran.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
             }
@@ -241,40 +299,56 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     }
 
     private void handleUploadError(VolleyError error) {
-        Toast.makeText(UploadBuktiPembayaran.this, "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
-    }
-
-    private void buildTextPart(DataOutputStream dataOutputStream, String parameterName, String parameterValue) throws IOException {
-        dataOutputStream.writeBytes("--" + boundary + "\r\n");
-        dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"" + parameterName + "\"\r\n\r\n");
-        dataOutputStream.writeBytes(parameterValue + "\r\n");
-    }
-
-    private void buildFilePart(DataOutputStream dataOutputStream, String parameterName, String fileName) throws IOException {
-        dataOutputStream.writeBytes("--" + boundary + "\r\n");
-        dataOutputStream.writeBytes("Content-Disposition: form-data; name=\"" + parameterName + "\"; filename=\"" + fileName + "\"\r\n");
-        dataOutputStream.writeBytes("Content-Type: image/jpeg\r\n\r\n");
-
-        FileInputStream fileInputStream = new FileInputStream(fileName);
-        int bytesAvailable = fileInputStream.available();
-        int bufferSize = Math.min(bytesAvailable, 1024 * 1024);
-        byte[] buffer = new byte[bufferSize];
-
-        int bytesRead = fileInputStream.read(buffer, 0, bufferSize);
-        while (bytesRead > 0) {
-            dataOutputStream.write(buffer, 0, bytesRead);
-            bytesAvailable = fileInputStream.available();
-            bufferSize = Math.min(bytesAvailable, 1024 * 1024);
-            bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+        String errorMessage = "Unknown error occurred";
+        if (error instanceof AuthFailureError || (error.networkResponse != null && error.networkResponse.statusCode == 401)) {
+            errorMessage = "Authentication error: Token might be invalid or expired";
+            refreshTokenAndRetry();
+        } else if (error.networkResponse != null) {
+            int statusCode = error.networkResponse.statusCode;
+            errorMessage = "Error: HTTP " + statusCode;
+            if (error.networkResponse.data != null) {
+                try {
+                    String responseBody = new String(error.networkResponse.data, "utf-8");
+                    Log.e("UploadError", "Error response body: " + responseBody);
+                    errorMessage += " - " + responseBody;
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else if (error.getMessage() != null) {
+            errorMessage = error.getMessage();
         }
 
-        dataOutputStream.writeBytes("\r\n");
-        fileInputStream.close();
+        Log.e("UploadError", "Detailed error: " + errorMessage);
+        Toast.makeText(UploadBuktiPembayaran.this, errorMessage, Toast.LENGTH_LONG).show();
     }
 
-    private void navigateToStatus() {
+    private void refreshTokenAndRetry() {
+        // Implement token refresh logic here
+        // This might involve making a request to your server to get a new token
+        String newToken = sessionManager.refreshToken();
+        if (newToken != null && !newToken.isEmpty()) {
+            sessionManager.saveToken(newToken);
+            kirim();
+        } else {
+            Toast.makeText(this, "Failed to refresh token. Please log in again.", Toast.LENGTH_LONG).show();
+            navigateToLogin();
+        }
+    }
+
+    private void navigateToLogin() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void navigateToStatus(String status) {
         Intent intent = new Intent(UploadBuktiPembayaran.this, Status.class);
         intent.putExtra("NOMOR_KTP", nomorKtp);
+        if (status != null) {
+            intent.putExtra("STATUS_PEMBAYARAN", status);
+        }
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
         finish();
@@ -298,7 +372,4 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
             fotoBukti.setVisibility(ImageView.VISIBLE);
         }
     }
-
-    private static final String boundary = "Volley-" + System.currentTimeMillis();
-    private static final String lineEnd = "\r\n";
 }
