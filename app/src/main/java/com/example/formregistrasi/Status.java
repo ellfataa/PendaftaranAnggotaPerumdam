@@ -31,7 +31,10 @@ public class Status extends AppCompatActivity {
     private static final String TAG = "Status";
     private static final String BASE_URL = "http://192.168.230.84/registrasi-pelanggan/public/api/register-detail";
     private static final String PREFS_NAME = "UserInfo";
-    private static final String TOKEN_KEY = "token";
+    private static final String AUTH_TOKEN_KEY = "token";
+    private static final String USER_EMAIL_KEY = "email";
+    private static final String NAME_KEY = "name";
+    private static final String HAS_REGISTERED_KEY = "hasRegistered";
 
     private SessionManager sessionManager;
     private TextView tvNama, tvNik, tvPekerjaan, tvTelp, tvAlamat, tvRt, tvRw, tvKelurahan, tvKecamatan,
@@ -96,7 +99,7 @@ public class Status extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        final String token = prefs.getString(TOKEN_KEY, "");
+        final String token = prefs.getString(AUTH_TOKEN_KEY, "");
 
         StringRequest stringRequest = new StringRequest(Request.Method.POST, BASE_URL,
                 response -> {
@@ -132,7 +135,9 @@ public class Status extends AppCompatActivity {
             @Override
             public Map<String, String> getHeaders() throws AuthFailureError {
                 Map<String, String> headers = new HashMap<>();
-                headers.put("Authorization", "Bearer " + token);
+                if (!token.isEmpty()) {
+                    headers.put("Authorization", "Bearer " + token);
+                }
                 headers.put("Accept", "application/json");
                 return headers;
             }
@@ -152,6 +157,27 @@ public class Status extends AppCompatActivity {
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(stringRequest);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
+        String newStatus = getIntent().getStringExtra("STATUS_PEMBAYARAN");
+
+        if (nomorKtp != null && !nomorKtp.isEmpty()) {
+            if (newStatus != null && newStatus.equals("ditinjau")) {
+                updateUIForReview();
+            }
+            // Always fetch the latest details to ensure we have the most up-to-date information
+            fetchRegistrationDetails(nomorKtp);
+        }
+    }
+
+    private void updateUIForReview() {
+        tvStatus.setText("Status: upload bukti bayar");
+        tvStatusBiaya.setText("Status Pembayaran: Pembayaran masih ditinjau/dicek");
+        btnBuktiBayar.setVisibility(View.GONE);
     }
 
     private void updateUI(JSONObject data) {
@@ -174,12 +200,11 @@ public class Status extends AppCompatActivity {
             tvBiaya.setText("Biaya Registrasi: Rp " + registrasi.optString("biaya_registrasi", "N/A"));
 
             String statusPembayaran = registrasi.optString("status_pembayaran", "").toLowerCase();
-            if (statusPembayaran.isEmpty() || statusPembayaran.equals("belum dibayar")) {
+            if (statusPembayaran.equals("ditinjau")) {
+                updateUIForReview();
+            } else if (statusPembayaran.isEmpty() || statusPembayaran.equals("belum dibayar")) {
                 tvStatusBiaya.setText("Status Pembayaran: Pembayaran Belum dilakukan");
                 btnBuktiBayar.setVisibility(View.VISIBLE);
-            } else if (statusPembayaran.equals("ditinjau")) {
-                tvStatusBiaya.setText("Status Pembayaran: Pembayaran masih ditinjau");
-                btnBuktiBayar.setVisibility(View.GONE);
             } else {
                 tvStatusBiaya.setText("Status Pembayaran: " + statusPembayaran);
                 btnBuktiBayar.setVisibility(View.GONE);
@@ -227,23 +252,6 @@ public class Status extends AppCompatActivity {
             tvToken.setVisibility(View.GONE);
 
             Toast.makeText(this, "Error mengupdate data: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
-        String newStatus = getIntent().getStringExtra("STATUS_PEMBAYARAN");
-
-        if (nomorKtp != null && !nomorKtp.isEmpty()) {
-            if (newStatus != null && newStatus.equals("ditinjau")) {
-                // Update UI immediately for the new status
-                tvStatusBiaya.setText("Status Pembayaran: Pembayaran masih ditinjau");
-                btnBuktiBayar.setVisibility(View.GONE);
-            }
-            // Fetch the latest details from the server
-            fetchRegistrationDetails(nomorKtp);
         }
     }
 

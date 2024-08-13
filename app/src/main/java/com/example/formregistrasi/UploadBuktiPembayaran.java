@@ -252,33 +252,6 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         Volley.newRequestQueue(this).add(multipartRequest);
     }
 
-    private String getAuthToken() {
-        if (sessionManager != null) {
-            String token = sessionManager.getToken();
-            if (token.isEmpty()) {
-                Log.d("UploadBuktiPembayaran", "Token is empty");
-            }
-            return token;
-        } else {
-            Log.e("UploadBuktiPembayaran", "SessionManager is null");
-            return "";
-        }
-    }
-
-    private byte[] getFileDataFromPath(String path) {
-        File file = new File(path);
-        int size = (int) file.length();
-        byte[] bytes = new byte[size];
-        try {
-            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
-            buf.read(bytes, 0, bytes.length);
-            buf.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return bytes;
-    }
-
     private void handleUploadResponse(NetworkResponse response) {
         String responseString = new String(response.data);
         try {
@@ -296,6 +269,15 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
             e.printStackTrace();
             Toast.makeText(UploadBuktiPembayaran.this, "Error parsing response", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void navigateToStatus(String status) {
+        Intent intent = new Intent(UploadBuktiPembayaran.this, Status.class);
+        intent.putExtra("NOMOR_KTP", nomorKtp);
+        intent.putExtra("STATUS_PEMBAYARAN", status);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void handleUploadError(VolleyError error) {
@@ -324,8 +306,6 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     }
 
     private void refreshTokenAndRetry() {
-        // Implement token refresh logic here
-        // This might involve making a request to your server to get a new token
         String newToken = sessionManager.refreshToken();
         if (newToken != null && !newToken.isEmpty()) {
             sessionManager.saveToken(newToken);
@@ -343,15 +323,18 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         finish();
     }
 
-    private void navigateToStatus(String status) {
-        Intent intent = new Intent(UploadBuktiPembayaran.this, Status.class);
-        intent.putExtra("NOMOR_KTP", nomorKtp);
-        if (status != null) {
-            intent.putExtra("STATUS_PEMBAYARAN", status);
+    private byte[] getFileDataFromPath(String path) {
+        File file = new File(path);
+        int size = (int) file.length();
+        byte[] bytes = new byte[size];
+        try {
+            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
+            buf.read(bytes, 0, bytes.length);
+            buf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
+        return bytes;
     }
 
     @Override
