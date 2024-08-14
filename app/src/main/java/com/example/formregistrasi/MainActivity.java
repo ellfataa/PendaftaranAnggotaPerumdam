@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private GoogleSignInClient gsc;
     private ProgressDialog progressDialog;
 
-    // Method ini dipanggil waktu activity dibuat
+    // Method ini dipanggil ketika activity dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         setupGoogleSignIn();
     }
 
-    // Buat inisialisasi semua view yang ada di layout
+    // Menginisialisasi semua view yang ada di layout
     private void initializeViews() {
         logo = findViewById(R.id.logo);
         txt_masuk = findViewById(R.id.txt_masuk);
@@ -85,14 +85,14 @@ public class MainActivity extends AppCompatActivity {
         google_btn = findViewById(R.id.google_btn);
     }
 
-    // Buat set up dialog loading
+    // Menyiapkan dialog loading
     private void setupProgressDialog() {
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Sedang masuk...");
         progressDialog.setCancelable(false);
     }
 
-    // Ngecek kalo ada data registrasi yang dikirim dari activity lain
+    // Mengecek apakah ada data registrasi yang dikirim dari activity lain
     private void checkForRegistrationData() {
         Intent intent = getIntent();
         if (intent.hasExtra("email") && intent.hasExtra("password")) {
@@ -103,14 +103,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Nambahin listener buat tombol-tombol yang bisa diklik
+    // Menambahkan listener untuk tombol-tombol yang bisa diklik
     private void setupClickListeners() {
         daftarText.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, BuatUser.class)));
         btn_masuk.setOnClickListener(v -> { if (isInputValid()) login(); });
         google_btn.setOnClickListener(v -> signIn());
     }
 
-    // Buat set up Google Sign In
+    // Menyiapkan Google Sign In
     private void setupGoogleSignIn() {
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         gsc = GoogleSignIn.getClient(this, gso);
     }
 
-    // Ngecek apakah input udah bener atau belum
+    // Mengecek apakah input sudah benar atau belum
     private boolean isInputValid() {
         String emailAkun = et_emailAkun.getText().toString().trim();
         String passwordAkun = et_passwordAkun.getText().toString().trim();
@@ -158,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
         requestQueue.add(stringRequest);
     }
 
+    // Menangani respon dari server setelah login
     private void handleLoginResponse(String response) {
         progressDialog.dismiss();
         Log.d(TAG, "Server Response: " + response);
@@ -171,16 +172,10 @@ public class MainActivity extends AppCompatActivity {
                 String token = jsonObject.getString("token");
 
                 sessionManager.saveToken(token);
+                saveUserInfo(email, name, token);
 
-                // Simpan informasi user dan token
-                SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString(EMAIL_KEY, email);
-                editor.putString(NAME_KEY, name);
-                editor.putString(TOKEN_KEY, token);
-                editor.apply();
-
-                boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
+                boolean hasRegistered = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                        .getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
 
                 showSuccessDialog(name, hasRegistered);
             } else {
@@ -194,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Nangani error waktu login
+    // Menangani error saat login
     private void handleLoginError(VolleyError error) {
         progressDialog.dismiss();
         Log.e(TAG, "Volley Error: " + error.toString());
@@ -221,6 +216,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Menampilkan dialog error
     private void showErrorDialog(String message) {
         new AlertDialog.Builder(this)
                 .setTitle("Error")
@@ -229,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    // Nyimpen info user ke SharedPreferences
+    // Menyimpan informasi user ke SharedPreferences
     private void saveUserInfo(String email, String name, String token) {
         SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -239,7 +235,7 @@ public class MainActivity extends AppCompatActivity {
         editor.apply();
     }
 
-    // Nampilin dialog kalo login berhasil
+    // Menampilkan dialog ketika login berhasil
     private void showSuccessDialog(String name, boolean hasRegistered) {
         new AlertDialog.Builder(this)
                 .setTitle("Login Berhasil")
@@ -255,13 +251,13 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    // Mulai proses sign in pake Google
+    // Memulai proses sign in dengan Google
     private void signIn() {
         Intent signInIntent = gsc.getSignInIntent();
         startActivityForResult(signInIntent, RC_SIGN_IN);
     }
 
-    // Nangani hasil dari Google Sign In
+    // Menangani hasil dari Google Sign In
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -277,35 +273,40 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Nangani hasil sign in dari Google
+    // Menangani hasil sign in dari Google
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
-            String personEmail = account.getEmail();
-            String personName = account.getDisplayName();
-            if (personEmail == null) personEmail = "Email tidak tersedia";
-            if (personName == null) personName = "Nama tidak tersedia";
-
-            SharedPreferences.Editor editor = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
-            editor.putString(EMAIL_KEY, personEmail);
-            editor.putString(NAME_KEY, personName);
-            editor.apply();
+            String personEmail = account.getEmail() != null ? account.getEmail() : "Email tidak tersedia";
+            String personName = account.getDisplayName() != null ? account.getDisplayName() : "Nama tidak tersedia";
 
             saveUserInfo(personEmail, personName, "");  // Token kosong untuk Google Sign In
 
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
             boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY + "_" + personEmail, false);
-            showSuccessDialog(personName, hasRegistered);
+
+            if (hasRegistered) {
+                String nomorKtp = prefs.getString("nomor_ktp_" + personEmail, "");
+                Intent intent = new Intent(MainActivity.this, Status.class);
+                intent.putExtra("NOMOR_KTP", nomorKtp);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(MainActivity.this, RegistrasiActivity.class);
+                intent.putExtra("userEmail", personEmail);
+                intent.putExtra("userName", personName);
+                startActivity(intent);
+            }
+            finish();
         }
     }
 
-    // Ngecek apakah user udah login atau belum
+    // Mengecek apakah user sudah login atau belum
     private boolean isLoggedIn() {
         SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String token = sharedPreferences.getString(TOKEN_KEY, "");
         return !token.isEmpty();
     }
 
-    // Pindah ke halaman IndexPendaftaranLogin
+    // Berpindah ke halaman IndexPendaftaranLogin
     private void goToIndexPendaftaranLogin() {
         Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);

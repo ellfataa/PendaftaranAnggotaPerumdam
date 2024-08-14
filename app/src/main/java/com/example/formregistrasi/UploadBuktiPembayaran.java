@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -62,6 +63,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     private String fotoBuktiPath;
     private SessionManager sessionManager;
 
+    // Metode ini dipanggil saat aktivitas pertama kali dibuat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,6 +81,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini menginisialisasi semua tampilan yang digunakan dalam aktivitas
     private void initializeViews() {
         fotoBukti = findViewById(R.id.fotoBukti);
         btnPickImgBukti = findViewById(R.id.btnPickImgBukti);
@@ -87,12 +90,14 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         txtUserEmail = findViewById(R.id.txtUserEmail);
     }
 
+    // Metode ini mengatur listener untuk semua tombol dalam aktivitas
     private void setListeners() {
         btnPickImgBukti.setOnClickListener(v -> pickImage());
         btnKirim.setOnClickListener(v -> kirim());
         btnKembali.setOnClickListener(v -> navigateToStatus(null));
     }
 
+    // Metode ini dipanggil ketika pengguna ingin memilih gambar
     private void pickImage() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
@@ -101,6 +106,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini meluncurkan pemilih gambar yang memungkinkan pengguna memilih dari galeri atau mengambil foto baru
     private void launchImagePicker() {
         Intent galleryIntent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         galleryIntent.setType("image/*");
@@ -126,6 +132,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         startActivityForResult(chooserIntent, REQUEST_IMAGE_BUKTI);
     }
 
+    // Metode ini membuat file gambar baru untuk menyimpan foto yang diambil
     private File createImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
@@ -133,6 +140,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
+    // Metode ini dipanggil setelah pengguna memberikan atau menolak izin kamera
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -145,6 +153,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini dipanggil setelah pengguna memilih atau mengambil gambar
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -154,6 +163,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini memproses gambar yang dipilih, mengompresnya, dan menyimpannya
     private void processImage(Uri imageUri) {
         try {
             InputStream imageStream = getContentResolver().openInputStream(imageUri);
@@ -174,6 +184,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini menyimpan gambar ke penyimpanan internal
     private String saveImageToInternalStorage(Bitmap bitmap, String fileName) {
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File directory = cw.getDir("images", Context.MODE_PRIVATE);
@@ -187,6 +198,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         return file.getAbsolutePath();
     }
 
+    // Metode ini dipanggil ketika pengguna menekan tombol kirim
     private void kirim() {
         if (fotoBuktiPath == null) {
             Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show();
@@ -205,6 +217,11 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
             return;
         }
 
+        uploadImage();
+    }
+
+    // Metode ini mengunggah gambar ke server
+    private void uploadImage() {
         String url = "http://192.168.230.84/registrasi-pelanggan/public/api/upload-bukti-bayar";
         Log.d("Upload", "Starting upload to URL: " + url);
 
@@ -252,6 +269,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         Volley.newRequestQueue(this).add(multipartRequest);
     }
 
+    // Metode ini menangani respons dari server setelah unggahan
     private void handleUploadResponse(NetworkResponse response) {
         String responseString = new String(response.data);
         try {
@@ -261,6 +279,13 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
 
             if (success) {
                 Toast.makeText(UploadBuktiPembayaran.this, "Bukti pembayaran terkirim", Toast.LENGTH_SHORT).show();
+
+                // Save the new status
+                SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("payment_status_" + nomorKtp, "ditinjau");
+                editor.apply();
+
                 navigateToStatus("ditinjau");
             } else {
                 Toast.makeText(UploadBuktiPembayaran.this, "Upload failed: " + message, Toast.LENGTH_SHORT).show();
@@ -271,15 +296,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
-    private void navigateToStatus(String status) {
-        Intent intent = new Intent(UploadBuktiPembayaran.this, Status.class);
-        intent.putExtra("NOMOR_KTP", nomorKtp);
-        intent.putExtra("STATUS_PEMBAYARAN", status);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
-        finish();
-    }
-
+    // Metode ini menangani kesalahan yang terjadi selama unggahan
     private void handleUploadError(VolleyError error) {
         String errorMessage = "Unknown error occurred";
         if (error instanceof AuthFailureError || (error.networkResponse != null && error.networkResponse.statusCode == 401)) {
@@ -305,6 +322,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         Toast.makeText(UploadBuktiPembayaran.this, errorMessage, Toast.LENGTH_LONG).show();
     }
 
+    // Metode ini menyegarkan token dan mencoba lagi unggahan
     private void refreshTokenAndRetry() {
         String newToken = sessionManager.refreshToken();
         if (newToken != null && !newToken.isEmpty()) {
@@ -316,6 +334,17 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         }
     }
 
+    // Metode ini mengarahkan pengguna ke halaman status
+    private void navigateToStatus(String status) {
+        Intent intent = new Intent(UploadBuktiPembayaran.this, Status.class);
+        intent.putExtra("JUST_UPLOADED", true);
+        intent.putExtra("NOMOR_KTP", nomorKtp);
+        intent.putExtra("NEW_STATUS", status);
+        startActivity(intent);
+        finish();
+    }
+
+    // Metode ini mengarahkan pengguna kembali ke halaman login
     private void navigateToLogin() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -323,6 +352,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         finish();
     }
 
+    // Metode ini mengambil data file dari path yang diberikan
     private byte[] getFileDataFromPath(String path) {
         File file = new File(path);
         int size = (int) file.length();
@@ -337,6 +367,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         return bytes;
     }
 
+    // Metode ini menyimpan state aktivitas saat terjadi perubahan konfigurasi
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -344,6 +375,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         outState.putString("fotoBuktiPath", fotoBuktiPath);
     }
 
+    // Metode ini memulihkan state aktivitas setelah perubahan konfigurasi
     private void restoreInstanceState(Bundle savedInstanceState) {
         String uriBukti = savedInstanceState.getString("photoUriBukti");
         if (uriBukti != null) photoUriBukti = Uri.parse(uriBukti);

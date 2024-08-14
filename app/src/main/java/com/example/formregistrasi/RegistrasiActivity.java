@@ -688,12 +688,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = userPrefs.edit();
 
         String userEmail = userPrefs.getString("email", "");
-
         String nomorKtp = etNik.getText().toString();
-        SharedPreferences allNomorKTP = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
-        SharedPreferences.Editor ktpEditor = allNomorKTP.edit();
-        ktpEditor.putString(nomorKtp, userEmail);
-        ktpEditor.apply();
 
         editor.putBoolean(HAS_REGISTERED_KEY + "_" + userEmail, true);
 
@@ -725,14 +720,17 @@ public class RegistrasiActivity extends AppCompatActivity {
 
         editor.apply();
 
+        SharedPreferences allNomorKTP = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
+        SharedPreferences.Editor ktpEditor = allNomorKTP.edit();
+        ktpEditor.putString(nomorKtp, userEmail);
+        ktpEditor.apply();
+
         Toast.makeText(this, "Registrasi Anda berhasil!", Toast.LENGTH_LONG).show();
 
         Intent intent = new Intent(RegistrasiActivity.this, Status.class);
-        intent.putExtra("NOMOR_KTP", etNik.getText().toString());
-        intent.putExtra("REGISTERED", true);
-
+        intent.putExtra("NOMOR_KTP", nomorKtp);
+        intent.putExtra("JUST_REGISTERED", true);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
         startActivity(intent);
         finish();
     }
