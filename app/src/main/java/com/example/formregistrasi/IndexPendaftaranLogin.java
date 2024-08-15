@@ -106,7 +106,8 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
 
         txtUserName.setText(!userName.isEmpty() ? userName : email);
         txtUserName.setVisibility(View.VISIBLE);
-        txtUserEmail.setVisibility(View.GONE);
+        txtUserEmail.setText(email);
+        txtUserEmail.setVisibility(View.VISIBLE);
         btn_keluar.setVisibility(View.VISIBLE);
         btn_status.setVisibility(View.VISIBLE);
 
@@ -152,6 +153,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         Intent intent = new Intent(IndexPendaftaranLogin.this, Status.class);
         intent.putExtra("NOMOR_KTP", nomorKtp);
         intent.putExtra("SAVED_STATUS", savedStatus);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
 
@@ -191,11 +193,18 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
 
     // Proses logout
     private void logout() {
-        String authToken = sharedPreferences.getString(AUTH_TOKEN_KEY, "");
-        if (!authToken.isEmpty()) {
-            logoutRegular(authToken);
-        } else {
+        boolean isGoogleLogin = sharedPreferences.getBoolean("is_google_login", false);
+        if (isGoogleLogin) {
             logoutGoogle();
+        } else {
+            String authToken = sharedPreferences.getString(AUTH_TOKEN_KEY, "");
+            if (!authToken.isEmpty()) {
+                logoutRegular(authToken);
+            } else {
+                // Handle case where there's no auth token (shouldn't normally happen)
+                clearAuthData();
+                navigateToMainActivity();
+            }
         }
     }
 
@@ -241,7 +250,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         clearAuthData();
         navigateToMainActivity();
     }
-
+//
     // Logout dari akun Google
     private void logoutGoogle() {
         gsc.signOut().addOnCompleteListener(this, task -> {
@@ -257,6 +266,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
         editor.remove(AUTH_TOKEN_KEY);
         editor.remove(USER_EMAIL_KEY);
         editor.remove(NAME_KEY);
+        editor.remove("is_google_login");
         editor.apply();
     }
 

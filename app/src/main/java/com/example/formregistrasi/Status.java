@@ -58,7 +58,11 @@ public class Status extends AppCompatActivity {
         shouldRefreshData = getIntent().getBooleanExtra("REFRESH_DATA", false);
 
         String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
-        if (nomorKtp != null && !nomorKtp.isEmpty()) {
+        boolean isGoogleLogin = sessionManager.isLoggedInWithGoogle();
+
+        if (isGoogleLogin) {
+            fetchRegistrationDataFromSharedPreferences();
+        } else if (nomorKtp != null && !nomorKtp.isEmpty()) {
             fetchRegistrationDetails(nomorKtp);
         } else {
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -145,6 +149,94 @@ public class Status extends AppCompatActivity {
         stringRequest.setShouldCache(false);
 
         addToRequestQueue(stringRequest);
+    }
+
+    private void fetchRegistrationDataFromSharedPreferences() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String email = prefs.getString(EMAIL_KEY, "");
+
+        if (!email.isEmpty()) {
+            String nama = prefs.getString("nama_" + email, "N/A");
+            String nomorKtp = prefs.getString("nomor_ktp_" + email, "N/A");
+            String pekerjaan = prefs.getString("pekerjaan_" + email, "N/A");
+            String telpHp = prefs.getString("telp_hp_" + email, "N/A");
+            String alamat = prefs.getString("alamat_" + email, "N/A");
+            String rt = prefs.getString("rt_" + email, "N/A");
+            String rw = prefs.getString("rw_" + email, "N/A");
+            String kelurahan = prefs.getString("kelurahan_" + email, "N/A");
+            String kecamatan = prefs.getString("kecamatan_" + email, "N/A");
+            String kodePos = prefs.getString("kode_pos_" + email, "N/A");
+            String jumlahPenghuni = prefs.getString("jumlah_penghuni_" + email, "N/A");
+            String latitude = prefs.getString("latitude_" + email, "N/A");
+            String longitude = prefs.getString("longitude_" + email, "N/A");
+
+            String savedStatus = prefs.getString("payment_status_" + nomorKtp, "");
+
+            // Handle payment status
+            if (!savedStatus.isEmpty()) {
+                handlePaymentStatus(savedStatus);
+            } else {
+                handlePaymentStatus("belum dibayar");
+            }
+
+            updateUIWithLocalData(nama, nomorKtp, pekerjaan, telpHp, alamat, rt, rw, kelurahan, kecamatan, kodePos, jumlahPenghuni, latitude, longitude);
+        } else {
+            Toast.makeText(this, "Data registrasi tidak ditemukan", Toast.LENGTH_SHORT).show();
+            finish();
+        }
+    }
+
+    private void updateUIWithLocalData(String nama, String nomorKtp, String pekerjaan, String telpHp, String alamat, String rt, String rw, String kelurahan, String kecamatan, String kodePos, String jumlahPenghuni, String latitude, String longitude) {
+        tvNama.setText("Nama: " + nama);
+        tvNik.setText("NIK: " + nomorKtp);
+        tvPekerjaan.setText("Pekerjaan: " + pekerjaan);
+        tvTelp.setText("No. Telp: " + telpHp);
+        tvAlamat.setText("Alamat: " + alamat);
+        tvRt.setText("RT: " + rt);
+        tvRw.setText("RW: " + rw);
+        tvKelurahan.setText("Kelurahan: " + kelurahan);
+        tvKecamatan.setText("Kecamatan: " + kecamatan);
+        tvKodePos.setText("Kode Pos: " + kodePos);
+        tvJumlahPenghuni.setText("Jumlah Penghuni: " + jumlahPenghuni);
+        tvLatitude.setText("Latitude: " + latitude);
+        tvLongitude.setText("Longitude: " + longitude);
+
+        // Fetch the saved payment status
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String savedStatus = prefs.getString("payment_status_" + nomorKtp, "");
+
+        // Handle payment status
+        if (!savedStatus.isEmpty()) {
+            handlePaymentStatus(savedStatus);
+        } else {
+            tvStatusBiaya.setText("Status Pembayaran: Pembayaran Belum dilakukan");
+            btnBuktiBayar.setVisibility(View.VISIBLE);
+        }
+
+        // Set biaya registrasi
+        String biayaRegistrasi = prefs.getString("biaya_registrasi_" + nomorKtp, "");
+        if (!biayaRegistrasi.isEmpty()) {
+            tvBiaya.setText("Biaya Registrasi: Rp " + biayaRegistrasi);
+        } else {
+            tvBiaya.setText("Biaya Registrasi: Rp70.000");
+        }
+//
+        // Set registration status
+        String registrationStatus = prefs.getString("registration_status_" + nomorKtp, "");
+        if (!registrationStatus.isEmpty()) {
+            tvStatus.setText("Status: " + registrationStatus);
+        } else {
+            tvStatus.setText("Status: Data masih tahap review");
+        }
+
+        // Handle token visibility
+        String token = prefs.getString("token_" + nomorKtp, "");
+        if (!token.isEmpty() && savedStatus.equalsIgnoreCase("lunas")) {
+            tvToken.setText("Token: " + token);
+            tvToken.setVisibility(View.VISIBLE);
+        } else {
+            tvToken.setVisibility(View.GONE);
+        }
     }
 
     // Method ini dipanggil untuk mengambil detail registrasi berdasarkan email
@@ -240,9 +332,13 @@ public class Status extends AppCompatActivity {
     }
 
     private void refreshData() {
-        String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
-        if (nomorKtp != null && !nomorKtp.isEmpty()) {
-            fetchRegistrationDetails(nomorKtp);
+        if (sessionManager.isLoggedInWithGoogle()) {
+            fetchRegistrationDataFromSharedPreferences();
+        } else {
+            String nomorKtp = getIntent().getStringExtra("NOMOR_KTP");
+            if (nomorKtp != null && !nomorKtp.isEmpty()) {
+                fetchRegistrationDetails(nomorKtp);
+            }
         }
     }
 
@@ -301,26 +397,34 @@ public class Status extends AppCompatActivity {
 
     // Method ini menangani status pembayaran
     private void handlePaymentStatus(String statusPembayaran) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        String nomorKtp = tvNik.getText().toString().replace("NIK: ", "");
+
         switch (statusPembayaran.toLowerCase()) {
             case "ditinjau":
                 tvStatusBiaya.setText("Status Pembayaran: Pembayaran masih ditinjau");
                 btnBuktiBayar.setVisibility(View.GONE);
+                editor.putString("payment_status_" + nomorKtp, "ditinjau");
                 break;
             case "belum dibayar":
             case "":
                 tvStatusBiaya.setText("Status Pembayaran: Pembayaran Belum dilakukan");
                 btnBuktiBayar.setVisibility(View.VISIBLE);
+                editor.putString("payment_status_" + nomorKtp, "belum dibayar");
                 break;
             case "lunas":
                 tvStatusBiaya.setText("Status Pembayaran: Lunas");
                 btnBuktiBayar.setVisibility(View.GONE);
+                editor.putString("payment_status_" + nomorKtp, "lunas");
                 break;
             default:
                 tvStatusBiaya.setText("Status Pembayaran: " + statusPembayaran);
                 btnBuktiBayar.setVisibility(View.GONE);
+                editor.putString("payment_status_" + nomorKtp, statusPembayaran);
                 break;
         }
-        savePaymentStatus(statusPembayaran);
+        editor.apply();
     }
 
     private void savePaymentStatus(String status) {
@@ -334,11 +438,7 @@ public class Status extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        justUploaded = intent.getBooleanExtra("JUST_UPLOADED", false);
-        String nomorKtp = intent.getStringExtra("NOMOR_KTP");
-        if (nomorKtp != null && !nomorKtp.isEmpty()) {
-            fetchRegistrationDetails(nomorKtp);
-        }
+        refreshData();
     }
 
     // Method ini menangani visibilitas token

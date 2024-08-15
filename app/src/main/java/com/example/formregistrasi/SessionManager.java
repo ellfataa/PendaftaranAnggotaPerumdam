@@ -1,5 +1,7 @@
 package com.example.formregistrasi;
 
+import static com.example.formregistrasi.RegistrasiActivity.PREFS_NAME;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 
@@ -12,6 +14,11 @@ public class SessionManager {
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
     private Context context;
+
+    public boolean isLoggedInWithGoogle() {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean("is_google_login", false);
+    }
 
     // Konstruktor untuk inisialisasi SessionManager
     public SessionManager(Context context) {

@@ -272,29 +272,28 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
+//AAAAA
     // Menangani hasil sign in dari Google
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
             String personEmail = account.getEmail() != null ? account.getEmail() : "Email tidak tersedia";
             String personName = account.getDisplayName() != null ? account.getDisplayName() : "Nama tidak tersedia";
 
-            saveUserInfo(personEmail, personName, "");  // Token kosong untuk Google Sign In
+            saveUserInfo(personEmail, personName, "google_token");  // Use a dummy token for Google Sign In
 
             SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("is_google_login", true);
+            editor.putString(EMAIL_KEY, personEmail);
+            editor.putString(NAME_KEY, personName);
+            editor.apply();
+
             boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY + "_" + personEmail, false);
 
-            if (hasRegistered) {
-                String nomorKtp = prefs.getString("nomor_ktp_" + personEmail, "");
-                Intent intent = new Intent(MainActivity.this, Status.class);
-                intent.putExtra("NOMOR_KTP", nomorKtp);
-                startActivity(intent);
-            } else {
-                Intent intent = new Intent(MainActivity.this, RegistrasiActivity.class);
-                intent.putExtra("userEmail", personEmail);
-                intent.putExtra("userName", personName);
-                startActivity(intent);
-            }
+            Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
+            intent.putExtra("hasRegistered", hasRegistered);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
             finish();
         }
     }
