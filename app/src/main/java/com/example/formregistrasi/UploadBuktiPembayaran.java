@@ -27,10 +27,17 @@ import androidx.core.content.FileProvider;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.NetworkError;
 import com.android.volley.NetworkResponse;
+import com.android.volley.ParseError;
 import com.android.volley.Request;
+import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -201,23 +208,48 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     // Metode ini dipanggil ketika pengguna menekan tombol kirim
     private void kirim() {
         if (fotoBuktiPath == null) {
-            Toast.makeText(this, "Please select an image first", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Tolong pilih gambar/foto terlebih dahulu", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        String token = sessionManager.getToken();
-        if (token.isEmpty()) {
-            Toast.makeText(this, "Authentication token is missing. Please log in again.", Toast.LENGTH_LONG).show();
-            navigateToLogin();
-            return;
-        }
+        if (sessionManager.isGoogleLogin()) {
+            uploadImageLocally();
+        } else {
+            // Existing code for regular login
+            String token = sessionManager.getToken();
+            if (token.isEmpty()) {
+                Toast.makeText(this, "Authentication token is missing. Please log in again.", Toast.LENGTH_LONG).show();
+                navigateToLogin();
+                return;
+            }
 
-        if (sessionManager.isTokenExpired()) {
-            refreshTokenAndRetry();
-            return;
-        }
+            if (sessionManager.isTokenExpired()) {
+                refreshTokenAndRetry();
+                return;
+            }
 
-        uploadImage();
+            uploadImage();
+        }
+    }
+
+    private void uploadImageLocally() {
+        SharedPreferences prefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        // Save the image path
+        editor.putString("bukti_pembayaran_" + nomorKtp, fotoBuktiPath);
+
+        // Update payment status
+        editor.putString("payment_status_" + nomorKtp, "ditinjau");
+
+        // Save the upload timestamp
+        long currentTime = System.currentTimeMillis();
+        editor.putLong("upload_time_" + nomorKtp, currentTime);
+
+        editor.apply();
+
+        Toast.makeText(this, "Bukti pembayaran telah disimpan", Toast.LENGTH_SHORT).show();
+        navigateToStatus("ditinjau");
     }
 
     // Metode ini mengunggah gambar ke server
@@ -249,12 +281,19 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
             public Map<String, String> getHeaders() throws AuthFailureError {
                 Map<String, String> headers = new HashMap<>();
                 headers.put("Accept", "application/json");
-                String token = sessionManager.getToken();
-                if (!token.isEmpty()) {
+                String token;
+                if (sessionManager.isGoogleLogin()) {
+                    token = sessionManager.getGoogleToken();
                     headers.put("Authorization", "Bearer " + token);
-                    Log.d("Upload", "Authorization header: Bearer " + token);
+                    Log.d("Upload", "Using Google token for Authorization: " + token);
                 } else {
-                    Log.d("Upload", "No token available for Authorization header");
+                    token = sessionManager.getToken();
+                    if (!token.isEmpty()) {
+                        headers.put("Authorization", "Bearer " + token);
+                        Log.d("Upload", "Using regular token for Authorization: " + token);
+                    } else {
+                        Log.d("Upload", "No token available for Authorization header");
+                    }
                 }
                 return headers;
             }
@@ -299,8 +338,16 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
     // Metode ini menangani kesalahan yang terjadi selama unggahan
     private void handleUploadError(VolleyError error) {
         String errorMessage = "Unknown error occurred";
+        if (sessionManager.isGoogleLogin()) {
+            // For Google login, we're not using the server API, so this shouldn't happen
+            Log.e("UploadError", "Unexpected error for Google login user", error);
+            Toast.makeText(this, "An unexpected error occurred for Google login user", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (error instanceof AuthFailureError || (error.networkResponse != null && error.networkResponse.statusCode == 401)) {
             errorMessage = "Authentication error: Token might be invalid or expired";
+            Log.d("UploadError", "Regular login detected, attempting to refresh token");
             refreshTokenAndRetry();
         } else if (error.networkResponse != null) {
             int statusCode = error.networkResponse.statusCode;
@@ -309,28 +356,85 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
                 try {
                     String responseBody = new String(error.networkResponse.data, "utf-8");
                     Log.e("UploadError", "Error response body: " + responseBody);
-                    errorMessage += " - " + responseBody;
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                    JSONObject jsonError = new JSONObject(responseBody);
+                    if (jsonError.has("message")) {
+                        errorMessage += " - " + jsonError.getString("message");
+                    }
+                } catch (UnsupportedEncodingException | JSONException e) {
+                    Log.e("UploadError", "Error parsing error response", e);
                 }
             }
+        } else if (error instanceof NetworkError) {
+            errorMessage = "Network error occurred. Please check your internet connection.";
+        } else if (error instanceof TimeoutError) {
+            errorMessage = "Connection timeout. Please try again.";
+        } else if (error instanceof ParseError) {
+            errorMessage = "Error parsing server response.";
         } else if (error.getMessage() != null) {
             errorMessage = error.getMessage();
         }
 
-        Log.e("UploadError", "Detailed error: " + errorMessage);
+        Log.e("UploadError", "Detailed error: " + errorMessage, error);
         Toast.makeText(UploadBuktiPembayaran.this, errorMessage, Toast.LENGTH_LONG).show();
+
+        // Optional: You might want to enable the upload button again or reset some UI state
+        // btnKirim.setEnabled(true);
+        // progressBar.setVisibility(View.GONE);
+    }
+
+    private void refreshGoogleTokenAndRetry() {
+        Log.d("GoogleAuth", "Attempting to refresh Google token");
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestIdToken(getString(R.string.default_web_client_id))
+                .build();
+        GoogleSignInClient mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
+
+        mGoogleSignInClient.silentSignIn()
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        GoogleSignInAccount account = task.getResult();
+                        String newToken = account.getIdToken();
+                        if (newToken != null && !newToken.isEmpty()) {
+                            Log.d("GoogleAuth", "Successfully refreshed Google token");
+                            sessionManager.saveGoogleToken(newToken);
+                            kirim(); // Retry upload with new token
+                        } else {
+                            Log.e("GoogleAuth", "New token is null or empty");
+                            handleRefreshFailure();
+                        }
+                    } else {
+                        Log.e("GoogleAuth", "Failed to refresh Google token", task.getException());
+                        handleRefreshFailure();
+                    }
+                });
+    }
+
+    private void handleRefreshFailure() {
+        Log.d("GoogleAuth", "Token refresh failed, navigating to login");
+        Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_LONG).show();
+        // Clear session data
+        sessionManager.clearSession();
+        // Navigate back to login screen
+        Intent intent = new Intent(UploadBuktiPembayaran.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     // Metode ini menyegarkan token dan mencoba lagi unggahan
     private void refreshTokenAndRetry() {
-        String newToken = sessionManager.refreshToken();
-        if (newToken != null && !newToken.isEmpty()) {
-            sessionManager.saveToken(newToken);
-            kirim();
+        if (sessionManager.isGoogleLogin()) {
+            refreshGoogleTokenAndRetry();
         } else {
-            Toast.makeText(this, "Failed to refresh token. Please log in again.", Toast.LENGTH_LONG).show();
-            navigateToLogin();
+            String newToken = sessionManager.refreshToken();
+            if (newToken != null && !newToken.isEmpty()) {
+                sessionManager.saveToken(newToken);
+                kirim();
+            } else {
+                Toast.makeText(this, "Failed to refresh token. Please log in again.", Toast.LENGTH_LONG).show();
+                navigateToLogin();
+            }
         }
     }
 
@@ -340,6 +444,7 @@ public class UploadBuktiPembayaran extends AppCompatActivity {
         intent.putExtra("JUST_UPLOADED", true);
         intent.putExtra("NOMOR_KTP", nomorKtp);
         intent.putExtra("NEW_STATUS", status);
+        intent.putExtra("IS_GOOGLE_LOGIN", sessionManager.isGoogleLogin());
         startActivity(intent);
         finish();
     }

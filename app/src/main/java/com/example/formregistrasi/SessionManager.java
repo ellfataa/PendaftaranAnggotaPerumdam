@@ -8,6 +8,9 @@ import android.content.SharedPreferences;
 public class SessionManager {
     private static final String PREF_NAME = "UserSession";
     private static final String KEY_TOKEN = "jwt_token";
+    private static final String GOOGLE_TOKEN_KEY = "google_token";
+    private static final String IS_GOOGLE_LOGIN = "IsGoogleLogin";
+    private static final String GOOGLE_TOKEN = "GoogleToken";
     private static final String KEY_TOKEN_TIMESTAMP = "token_timestamp";
     private static final long TOKEN_EXPIRATION_TIME = 3600000; // 1 jam dalam milidetik
 
@@ -58,6 +61,55 @@ public class SessionManager {
         editor.remove(KEY_TOKEN);
         editor.remove(KEY_TOKEN_TIMESTAMP);
         editor.apply();
+    }
+
+    // Metode untuk menyimpan token Google
+    public void saveGoogleToken(String token) {
+        editor.putString(GOOGLE_TOKEN, token);
+        editor.putBoolean(IS_GOOGLE_LOGIN, true);
+        editor.apply();
+    }
+
+    // Metode untuk mendapatkan token Google
+    public String getGoogleToken() {
+        return sharedPreferences.getString(GOOGLE_TOKEN, "");
+    }
+
+    // Metode untuk mengecek apakah pengguna login menggunakan Google
+    public boolean isGoogleLogin() {
+        return sharedPreferences.getBoolean(IS_GOOGLE_LOGIN, false);
+    }
+
+    public void clearSession() {
+        // Hapus semua data dari SharedPreferences
+        editor.clear();
+        editor.apply();
+
+        // Hapus status login Google dari SharedPreferences terpisah
+        SharedPreferences googlePrefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        SharedPreferences.Editor googleEditor = googlePrefs.edit();
+        googleEditor.remove("is_google_login");
+        googleEditor.apply();
+
+        // Hapus token JWT
+        clearToken();
+
+        // Hapus token Google
+        editor.remove(GOOGLE_TOKEN_KEY);
+        editor.apply();
+
+        // Hapus timestamp token
+        editor.remove(KEY_TOKEN_TIMESTAMP);
+        editor.apply();
+
+        // Jika ada data lain yang perlu dihapus, tambahkan di sini
+        // Misalnya, jika Anda menyimpan data user lainnya:
+        // editor.remove("user_email");
+        // editor.remove("user_name");
+        // editor.apply();
+
+        // Log out untuk memastikan semua data telah dihapus
+        logout();
     }
 
     // Menambahkan metode logout

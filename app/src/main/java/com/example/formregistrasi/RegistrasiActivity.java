@@ -1,5 +1,6 @@
 package com.example.formregistrasi;
 
+import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -28,7 +29,6 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.Manifest;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -89,6 +89,8 @@ public class RegistrasiActivity extends AppCompatActivity {
     private String fotoKTPBase64, fotoRumahBase64;
     private Button btnKembali, btnDaftar, btnPickImgKTP, btnPickImgRumah, btnPeta;
     private TextView txtUserEmail;
+    private EditText etIdUser;
+    private int userId;
 
     private Map<String, JSONArray> kelurahanByKecamatan = new HashMap<>();
     private String userName;
@@ -104,6 +106,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_registrasi);
 
         if (hasUserAlreadyRegistered()) {
             Toast.makeText(this, "Anda sudah melakukan registrasi sebelumnya.", Toast.LENGTH_LONG).show();
@@ -111,34 +114,43 @@ public class RegistrasiActivity extends AppCompatActivity {
             return;
         }
 
-        setContentView(R.layout.activity_registrasi);
-
         initializeViews();
+//        // Generate a temporary user ID
+//        String tempUserId = String.valueOf(System.currentTimeMillis());
+//        etIdUser.setText(tempUserId);
+//        etIdUser.setEnabled(false); // Make it non-editable
+//        etIdUser.setVisibility(View.GONE); // Make it visible
+
         setListeners();
         fetchDropdownData();
 
         fotoKTPPath = null;
         fotoRumahPath = null;
 
-        userName = getIntent().getStringExtra("userName");
-        userEmail = getIntent().getStringExtra("userEmail");
-
-        if (userName != null && !userName.isEmpty()) {
-            etNama.setText(userName);
-        } else {
-            SharedPreferences sharedPreferences = getSharedPreferences("UserInfo", MODE_PRIVATE);
-            String name = sharedPreferences.getString("name", "");
-            if (!name.isEmpty()) {
-                etNama.setText(name);
-            }
-        }
-
         SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         userEmail = sharedPreferences.getString("email", "");
+        userName = sharedPreferences.getString("name", "");
+        userId = sharedPreferences.getInt("id_user", -1);
+
+        if (!userName.isEmpty()) {
+            etNama.setText(userName);
+        }
+
+        if (userId != -1) {
+            // We have a valid user ID, you can use it as needed
+            Log.d("RegistrasiActivity", "User ID: " + userId);
+        } else {
+            // No valid user ID found, you might want to handle this case
+            Log.w("RegistrasiActivity", "No valid user ID found");
+        }
+
         if (!userEmail.isEmpty()) {
             txtUserEmail.setText(userEmail);
-            txtUserEmail.setVisibility(View.GONE);
+            txtUserEmail.setVisibility(View.VISIBLE);
             etEmail.setVisibility(View.GONE);
+        } else {
+            txtUserEmail.setVisibility(View.GONE);
+            etEmail.setVisibility(View.VISIBLE);
         }
 
         if (savedInstanceState != null) {
@@ -161,14 +173,20 @@ public class RegistrasiActivity extends AppCompatActivity {
             }
         }
 
-        btnPeta.setOnClickListener(v -> openMap());
+        btnPeta.setOnClickListener(v -> checkLocationServiceAndOpenMap());
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Sedang mendaftarkan...");
         progressDialog.setCancelable(false);
+
+//        etIdUser = findViewById(R.id.etIdUser);
+//        etIdUser.setVisibility(View.GONE); // Sembunyikan TextView
     }
 
     private void initializeViews() {
+//        etIdUser = findViewById(R.id.etIdUser);
+//        etIdUser.setEnabled(false); // Make it non-editable
+//        etIdUser.setVisibility(View.VISIBLE); // Make it visible
         etNama = findViewById(R.id.etNama);
         etNama.setFilters(new InputFilter[]{getTextOnlyFilter()});
         txtUserEmail = findViewById(R.id.txtUserEmail);
@@ -475,6 +493,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
             // Add string params
             Map<String, String> stringParams = new HashMap<>();
+            stringParams.put("id_user", etIdUser.getText().toString());
             stringParams.put("nama", etNama.getText().toString());
             stringParams.put("email", userEmail.isEmpty() ? etEmail.getText().toString() : userEmail);
             stringParams.put("nomor_ktp", etNik.getText().toString());
@@ -494,6 +513,9 @@ public class RegistrasiActivity extends AppCompatActivity {
             stringParams.put("id_pekerjaan", pekerjaanMap.get(idPekerjaan.getText().toString()));
             stringParams.put("id_kelurahan", kelurahanMap.get(idKelurahan.getText().toString()));
             stringParams.put("id_kecamatan", kecamatanMap.get(idKecamatan.getText().toString()));
+
+            // Log the request payload
+            Log.d("RegistrasiActivity", "Request payload: " + stringParams.toString());
 
             for (Map.Entry<String, String> entry : stringParams.entrySet()) {
                 buildTextPart(dos, boundary, entry.getKey(), entry.getValue());
@@ -541,18 +563,16 @@ public class RegistrasiActivity extends AppCompatActivity {
             Log.d("RegistrasiActivity", "Raw server response: " + responseBody);
             JSONObject jsonObject = new JSONObject(responseBody);
 
-            if (jsonObject.has("success")) {
-                boolean success = jsonObject.getBoolean("success");
-                String message = jsonObject.optString("message", "No message provided");
+            if (jsonObject.has("success") && jsonObject.getBoolean("success")) {
+                JSONObject userObject = jsonObject.getJSONObject("user");
+                int userId = userObject.getInt("id_user");
+                String message = jsonObject.optString("message", "Registrasi berhasil");
 
-                if (success) {
-                    Toast.makeText(getApplicationContext(), "Registrasi Anda berhasil!", Toast.LENGTH_SHORT).show();
-                    onRegistrationSuccess();
-                } else {
-                    Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-                }
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+                onRegistrationSuccess(userId);
             } else {
-                Toast.makeText(getApplicationContext(), "Unexpected server response", Toast.LENGTH_SHORT).show();
+                String message = jsonObject.optString("message", "Terjadi kesalahan saat registrasi");
+                Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             }
         } catch (JSONException e) {
             e.printStackTrace();
@@ -567,7 +587,7 @@ public class RegistrasiActivity extends AppCompatActivity {
             if (error.networkResponse.data != null) {
                 try {
                     String responseBody = new String(error.networkResponse.data, StandardCharsets.UTF_8);
-                    Log.d("RegistrasiActivity", "Error response: " + responseBody);
+                    Log.e("RegistrasiActivity", "Full error response: " + responseBody);
                     JSONObject jsonObject = new JSONObject(responseBody);
                     if (jsonObject.has("message")) {
                         errorMessage = jsonObject.getString("message");
@@ -683,15 +703,16 @@ public class RegistrasiActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void onRegistrationSuccess() {
+    private void onRegistrationSuccess(int userId) {
         SharedPreferences userPrefs = getSharedPreferences("UserInfo", MODE_PRIVATE);
         SharedPreferences.Editor editor = userPrefs.edit();
 
+//        etIdUser.setText(String.valueOf(userId));
         String userEmail = userPrefs.getString("email", "");
         String nomorKtp = etNik.getText().toString();
 
         editor.putBoolean(HAS_REGISTERED_KEY + "_" + userEmail, true);
-
+        editor.putInt("id_user", userId);
         editor.putString("nama_" + userEmail, etNama.getText().toString());
         editor.putString("nomor_ktp_" + userEmail, etNik.getText().toString());
         editor.putString("alamat_" + userEmail, etAlamat.getText().toString());
@@ -715,9 +736,6 @@ public class RegistrasiActivity extends AppCompatActivity {
         editor.putString("id_kelurahan_" + userEmail, kelurahanMap.get(idKelurahan.getText().toString()));
         editor.putString("id_kecamatan_" + userEmail, kecamatanMap.get(idKecamatan.getText().toString()));
 
-        editor.putString("foto_ktp_" + userEmail, fotoKTPBase64);
-        editor.putString("foto_rumah_" + userEmail, fotoRumahBase64);
-
         editor.apply();
 
         SharedPreferences allNomorKTP = getSharedPreferences("AllRegisteredNomorKTP", MODE_PRIVATE);
@@ -730,6 +748,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         Intent intent = new Intent(RegistrasiActivity.this, Status.class);
         intent.putExtra("NOMOR_KTP", nomorKtp);
         intent.putExtra("JUST_REGISTERED", true);
+        intent.putExtra("USER_ID", userId);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();

@@ -170,14 +170,32 @@ public class MainActivity extends AppCompatActivity {
                 String email = userObject.getString("email");
                 String name = userObject.getString("name");
                 String token = jsonObject.getString("token");
+                boolean isRegistered = userObject.getBoolean("is_registered");
+                int userId = userObject.getInt("id");
 
+                // Simpan token menggunakan SessionManager
                 sessionManager.saveToken(token);
-                saveUserInfo(email, name, token);
 
-                boolean hasRegistered = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                        .getBoolean(HAS_REGISTERED_KEY + "_" + email, false);
+                // Siapkan intent untuk pindah ke IndexPendaftaranLogin
+                Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
 
-                showSuccessDialog(name, hasRegistered);
+                // Tambahkan data ke intent
+                intent.putExtra("email", email);
+                intent.putExtra("name", name);
+                intent.putExtra("isRegistered", isRegistered);
+                intent.putExtra("userId", userId);
+
+                // Tambahkan flags untuk membersihkan stack activity
+                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                // Mulai activity baru
+                startActivity(intent);
+
+                // Tutup activity saat ini
+                finish();
+
+                // Tampilkan pesan sukses
+                Toast.makeText(MainActivity.this, "Login berhasil", Toast.LENGTH_SHORT).show();
             } else {
                 String message = jsonObject.optString("message", "Login gagal. Silakan coba lagi.");
                 Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
@@ -187,6 +205,18 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "JSON Error: " + e.toString());
             Toast.makeText(MainActivity.this, "Terjadi kesalahan dalam memproses data. Silakan coba lagi.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void saveUserInfo(String email, String name, String token, boolean isRegistered, int userId) {
+        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("email", email);
+        editor.putString("name", name);
+        editor.putString("token", token);
+        editor.putBoolean("is_registered", isRegistered);
+        editor.putInt("id", userId);
+        editor.putBoolean("is_logged_in", true);
+        editor.apply();
     }
 
     // Menangani error saat login
@@ -223,16 +253,6 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(message)
                 .setPositiveButton("OK", null)
                 .show();
-    }
-
-    // Menyimpan informasi user ke SharedPreferences
-    private void saveUserInfo(String email, String name, String token) {
-        SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(EMAIL_KEY, email);
-        editor.putString(NAME_KEY, name);
-        editor.putString(TOKEN_KEY, token);
-        editor.apply();
     }
 
     // Menampilkan dialog ketika login berhasil
@@ -272,30 +292,62 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-//AAAAA
+    //AAAAA
     // Menangani hasil sign in dari Google
     private void handleSignInResult(GoogleSignInAccount account) {
         if (account != null) {
             String personEmail = account.getEmail() != null ? account.getEmail() : "Email tidak tersedia";
             String personName = account.getDisplayName() != null ? account.getDisplayName() : "Nama tidak tersedia";
 
-            saveUserInfo(personEmail, personName, "google_token");  // Use a dummy token for Google Sign In
-
-            SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean("is_google_login", true);
-            editor.putString(EMAIL_KEY, personEmail);
-            editor.putString(NAME_KEY, personName);
-            editor.apply();
-
-            boolean hasRegistered = prefs.getBoolean(HAS_REGISTERED_KEY + "_" + personEmail, false);
-
-            Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
-            intent.putExtra("hasRegistered", hasRegistered);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-            finish();
+            // Kita perlu melakukan pengecekan ke server untuk mendapatkan informasi is_registered dan id
+            checkUserInServer(personEmail, personName);
         }
+    }
+
+    private void checkUserInServer(String email, String name) {
+        // Gunakan URL_LOGIN yang sama seperti login biasa
+        StringRequest stringRequest = new StringRequest(Request.Method.POST, URL_LOGIN,
+                response -> {
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+                        if (jsonObject.has("success") && jsonObject.getBoolean("success")) {
+                            JSONObject userObject = jsonObject.getJSONObject("user");
+                            String token = jsonObject.getString("token");
+                            boolean isRegistered = userObject.getBoolean("is_registered");
+                            int userId = userObject.getInt("id");
+
+                            saveUserInfo(email, name, token, isRegistered, userId);
+
+                            Intent intent = new Intent(MainActivity.this, IndexPendaftaranLogin.class);
+                            intent.putExtra("email", email);
+                            intent.putExtra("isRegistered", isRegistered);
+                            intent.putExtra("id", userId);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            // User tidak ditemukan di server, mungkin perlu registrasi
+                            Toast.makeText(MainActivity.this, "Akun Google belum terdaftar di server", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(MainActivity.this, "Terjadi kesalahan dalam memproses data", Toast.LENGTH_SHORT).show();
+                    }
+                },
+                error -> {
+                    Toast.makeText(MainActivity.this, "Gagal terhubung ke server", Toast.LENGTH_SHORT).show();
+                }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put("email", email);
+                params.put("name", name);
+                params.put("is_google_login", "true");
+                return params;
+            }
+        };
+
+        Volley.newRequestQueue(this).add(stringRequest);
     }
 
     // Mengecek apakah user sudah login atau belum

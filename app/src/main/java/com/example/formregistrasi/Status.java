@@ -265,6 +265,13 @@ public class Status extends AppCompatActivity {
             JSONObject jsonResponse = new JSONObject(response);
             if (jsonResponse.has("success") && jsonResponse.getBoolean("success")) {
                 JSONObject data = jsonResponse.getJSONObject("data");
+
+                // Ambil nilai "notes" dari data
+                String notes = data.optString("notes", "Status pembayaran tidak tersedia");
+
+                // Update UI dengan nilai notes
+                tvStatusBiaya.setText("Status Pembayaran: " + notes);
+
                 updateUI(data);
             } else {
                 String message = jsonResponse.optString("message", "Failed to fetch data");
@@ -358,7 +365,8 @@ public class Status extends AppCompatActivity {
             } else if (savedStatus != null && !savedStatus.isEmpty()) {
                 handlePaymentStatus(savedStatus);
             } else {
-                handlePaymentStatus(registrasi.optString("status_pembayaran", ""));
+                // Komentar atau hapus baris ini karena kita sudah mengatur tvStatusBiaya di handleApiResponse
+                // handlePaymentStatus(registrasi.optString("status_pembayaran", ""));
             }
 
             // Handle token visibility
