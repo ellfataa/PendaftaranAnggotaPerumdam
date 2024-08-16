@@ -209,6 +209,7 @@ public class IndexPendaftaranLogin extends AppCompatActivity {
     private void navigateToRegistration() {
         Intent intent = new Intent(IndexPendaftaranLogin.this, RegistrasiActivity.class);
         intent.putExtra("userEmail", userEmail);
+        intent.putExtra("userId", userId);
         startActivity(intent);
     }
 

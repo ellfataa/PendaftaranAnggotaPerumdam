@@ -128,20 +128,22 @@ public class RegistrasiActivity extends AppCompatActivity {
         fotoRumahPath = null;
 
         SharedPreferences sharedPreferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        userEmail = sharedPreferences.getString("email", "");
         userName = sharedPreferences.getString("name", "");
-        userId = sharedPreferences.getInt("id_user", -1);
+//        userEmail = sharedPreferences.getString("email", "");
+//        userId = sharedPreferences.getInt("id_user", -1);
 
         if (!userName.isEmpty()) {
             etNama.setText(userName);
         }
 
-        if (userId != -1) {
-            // We have a valid user ID, you can use it as needed
-            Log.d("RegistrasiActivity", "User ID: " + userId);
-        } else {
-            // No valid user ID found, you might want to handle this case
-            Log.w("RegistrasiActivity", "No valid user ID found");
+        Intent intent = getIntent();
+        userEmail = intent.getStringExtra("userEmail");
+        userId = intent.getIntExtra("userId", -1);
+
+        if (userId == -1) {
+            Toast.makeText(this, "Invalid user ID", Toast.LENGTH_LONG).show();
+            finish();
+            return;
         }
 
         if (!userEmail.isEmpty()) {
@@ -480,6 +482,7 @@ public class RegistrasiActivity extends AppCompatActivity {
         }
 
         Log.d("RegistrasiActivity", "All fields validated successfully");
+        Log.d("RegistrasiActivity", "Attempting to register user with ID: " + userId);
         progressDialog.show();
 
         String url = BASE_URL + "register";
@@ -493,7 +496,7 @@ public class RegistrasiActivity extends AppCompatActivity {
 
             // Add string params
             Map<String, String> stringParams = new HashMap<>();
-            stringParams.put("id_user", etIdUser.getText().toString());
+            stringParams.put("id_user", String.valueOf(userId));
             stringParams.put("nama", etNama.getText().toString());
             stringParams.put("email", userEmail.isEmpty() ? etEmail.getText().toString() : userEmail);
             stringParams.put("nomor_ktp", etNik.getText().toString());
@@ -541,7 +544,23 @@ public class RegistrasiActivity extends AppCompatActivity {
                         progressDialog.dismiss();
                         handleRegistrationError(error);
                     }
-            );
+            ) {
+                @Override
+                protected VolleyError parseNetworkError(VolleyError volleyError) {
+                    if (volleyError.networkResponse != null && volleyError.networkResponse.data != null) {
+                        try {
+                            String responseBody = new String(volleyError.networkResponse.data, "utf-8");
+                            Log.e("RegistrasiActivity", "Error response: " + responseBody);
+                            JSONObject jsonObject = new JSONObject(responseBody);
+                            String errorMessage = jsonObject.optString("message", "Unknown error occurred");
+                            return new VolleyError(errorMessage);
+                        } catch (UnsupportedEncodingException | JSONException e) {
+                            return new VolleyError(e.getMessage());
+                        }
+                    }
+                    return volleyError;
+                }
+            };
 
             multipartRequest.setRetryPolicy(new DefaultRetryPolicy(
                     30000,
@@ -564,18 +583,26 @@ public class RegistrasiActivity extends AppCompatActivity {
             JSONObject jsonObject = new JSONObject(responseBody);
 
             if (jsonObject.has("success") && jsonObject.getBoolean("success")) {
-                JSONObject userObject = jsonObject.getJSONObject("user");
-                int userId = userObject.getInt("id_user");
                 String message = jsonObject.optString("message", "Registrasi berhasil");
 
+                // Cek apakah ada objek "user" dalam respons
+                if (jsonObject.has("user")) {
+                    JSONObject userObject = jsonObject.getJSONObject("user");
+                    int userId = userObject.getInt("id_user");
+                    onRegistrationSuccess(userId);
+                } else {
+                    // Jika tidak ada objek "user", gunakan userId yang sudah ada
+                    onRegistrationSuccess(this.userId);
+                }
+
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
-                onRegistrationSuccess(userId);
             } else {
                 String message = jsonObject.optString("message", "Terjadi kesalahan saat registrasi");
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             }
         } catch (JSONException e) {
             e.printStackTrace();
+            Log.e("RegistrasiActivity", "Error parsing JSON: " + e.getMessage());
             Toast.makeText(getApplicationContext(), "Error parsing response: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
@@ -583,7 +610,7 @@ public class RegistrasiActivity extends AppCompatActivity {
     private void handleRegistrationError(VolleyError error) {
         String errorMessage = "Error during registration: ";
         if (error.networkResponse != null) {
-            errorMessage += "Status Code: " + error.networkResponse.statusCode;
+            errorMessage += "Status Code: " + error.networkResponse.statusCode + " ";
             if (error.networkResponse.data != null) {
                 try {
                     String responseBody = new String(error.networkResponse.data, StandardCharsets.UTF_8);
@@ -591,6 +618,18 @@ public class RegistrasiActivity extends AppCompatActivity {
                     JSONObject jsonObject = new JSONObject(responseBody);
                     if (jsonObject.has("message")) {
                         errorMessage = jsonObject.getString("message");
+                    } else if (jsonObject.has("errors")) {
+                        JSONObject errors = jsonObject.getJSONObject("errors");
+                        StringBuilder errorBuilder = new StringBuilder();
+                        Iterator<String> keys = (Iterator<String>) errors.keys();
+                        while (((java.util.Iterator<?>) keys).hasNext()) {
+                            String key = (String) ((java.util.Iterator<?>) keys).next();
+                            JSONArray errorArray = errors.getJSONArray(key);
+                            for (int i = 0; i < errorArray.length(); i++) {
+                                errorBuilder.append(errorArray.getString(i)).append("\n");
+                            }
+                        }
+                        errorMessage = errorBuilder.toString();
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -637,7 +676,8 @@ public class RegistrasiActivity extends AppCompatActivity {
     }
 
     private boolean validateFields() {
-        if (etNama.getText().toString().trim().isEmpty() ||
+        if (userId == -1 ||
+                etNama.getText().toString().trim().isEmpty() ||
                 etNik.getText().toString().trim().isEmpty() ||
                 etNik.getText().toString().trim().length() != 16 ||
                 etAlamat.getText().toString().trim().isEmpty() ||
